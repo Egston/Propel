@@ -45,6 +45,12 @@ abstract class BaseObject
     protected $_deleted = false;
 
     /**
+     * attribute to determine whether this object has not been changed
+     * since last sucessfull validation (or saving/loading to/from db)
+     */
+    protected $_validated = false;
+
+    /**
      * The columns that have been modified in current object.
      * Tracking modified columns allows us to only update modified columns.
      *
@@ -145,6 +151,30 @@ abstract class BaseObject
     public function setDeleted($b)
     {
         $this->_deleted = (boolean) $b;
+
+        return $this;
+    }
+
+    /**
+     * Whether this object has not been changes since last validation
+     *
+     * @return boolean The validated state of this object.
+     */
+    public function isValidated()
+    {
+        return $this->_validated;
+    }
+
+    /**
+     * Specify whether this object has been validated.
+     *
+     * @param boolean $b The validated state of this object.
+     *
+     * @return self
+     */
+    public function setValidated($b)
+    {
+        $this->_validated = (boolean) $b;
 
         return $this;
     }
@@ -257,6 +287,10 @@ abstract class BaseObject
             }
         } else {
             $this->modifiedColumns = array();
+        }
+
+        if ($col === null) {
+            $this->_validated = true;
         }
 
         return $this;
