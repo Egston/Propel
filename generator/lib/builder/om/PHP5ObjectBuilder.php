@@ -1533,6 +1533,7 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
         // Allow unsetting the lazy loaded column even when its not loaded.
         if (!\$this->" . $clo . "_isLoaded && \$v === null) {
             \$this->modifiedColumns[] = " . $this->getColumnConstant($col) . ";
+            \$this->_validated = false;
         }
 
         // explicitly set the is-loaded flag to true for this lazy load col;
@@ -1666,6 +1667,7 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
             \$this->$clo = \$v;
         }
         \$this->modifiedColumns[] = " . $this->getColumnConstant($col) . ";
+        \$this->_validated = false;
 ";
         $this->addMutatorClose($script, $col);
     } // addLobMutatorSnippet
@@ -1716,6 +1718,7 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
         $script .= "
                 \$this->$clo = \$newDateAsString;
                 \$this->modifiedColumns[] = " . $this->getColumnConstant($col) . ";
+                \$this->_validated = false;
             }
         } // if either are not null
 ";
@@ -1756,6 +1759,7 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
             \$this->$cloUnserialized = \$v;
             \$this->$clo = serialize(\$v);
             \$this->modifiedColumns[] = " . $this->getColumnConstant($col) . ";
+            \$this->_validated = false;
         }
 ";
         $this->addMutatorClose($script, $col);
@@ -1780,6 +1784,7 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
             \$this->$cloUnserialized = \$v;
             \$this->$clo = '| ' . implode(' | ', (array) \$v) . ' |';
             \$this->modifiedColumns[] = " . $this->getColumnConstant($col) . ";
+            \$this->_validated = false;
         }
 ";
         $this->addMutatorClose($script, $col);
@@ -1911,6 +1916,7 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
         if (\$this->$clo !== \$v) {
             \$this->$clo = \$v;
             \$this->modifiedColumns[] = " . $this->getColumnConstant($col) . ";
+            \$this->_validated = false;
         }
 ";
         $this->addMutatorClose($script, $col);
@@ -1946,6 +1952,7 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
         if (\$this->$clo !== \$v) {
             \$this->$clo = \$v;
             \$this->modifiedColumns[] = " . $this->getColumnConstant($col) . ";
+            \$this->_validated = false;
         }
 ";
         $this->addMutatorClose($script, $col);
@@ -2004,6 +2011,7 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
         if (\$this->$clo !== \$v) {
             \$this->$clo = \$v;
             \$this->modifiedColumns[] = " . $this->getColumnConstant($col) . ";
+            \$this->_validated = false;
         }
 ";
         $this->addMutatorClose($script, $col);
@@ -4888,7 +4896,8 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
         if ($this->getPlatform() instanceof MssqlPlatform) {
             if ($table->hasAutoIncrementPrimaryKey()) {
                 $script .= "
-        \$this->modifiedColumns[] = " . $this->getColumnConstant($table->getAutoIncrementPrimaryKey()) . ";";
+        \$this->modifiedColumns[] = " . $this->getColumnConstant($table->getAutoIncrementPrimaryKey()) . ";
+        \$this->_validated = false;";
             }
             $script .= "
         \$criteria = \$this->buildCriteria();";
@@ -4994,7 +5003,8 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
             $constantName = $this->getColumnConstant($column);
             if ($platform->supportsInsertNullPk()) {
                 $script .= "
-        \$this->modifiedColumns[] = $constantName;";
+        \$this->modifiedColumns[] = $constantName;
+        \$this->_validated = false;";
             }
             $columnProperty = strtolower($column->getName());
             if (!$table->isAllowPkInsert()) {
@@ -5007,6 +5017,7 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
         // add primary key column only if it is not null since this database does not accept that
         if (null !== \$this->{$columnProperty}) {
             \$this->modifiedColumns[] = $constantName;
+            \$this->_validated = false;
         }";
             }
         }
@@ -5397,14 +5408,20 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
      */
     public function validate(\$columns = null)
     {
+        if (\$this->_validated || \$this->alreadyInValidation) {
+            return true;
+        }
+
         \$res = \$this->doValidate(\$columns);
         if (\$res === true) {
             \$this->validationFailures = array();
+            \$this->_validated = true;
 
             return true;
         }
 
         \$this->validationFailures = \$res;
+        \$this->_validated = false;
 
         return false;
     }
