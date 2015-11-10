@@ -566,7 +566,10 @@ class Join
         return $join !== null
                 && $join instanceof Join
                 && $this->getJoinType() == $join->getJoinType()
-                && $this->getConditions() == $join->getConditions();
+                && $this->getConditions() == $join->getConditions()
+                && $this->getJoinCondition() == $join->getJoinCondition()
+                && $this->getLeftTableAliasOrName() == $join->getLeftTableAliasOrName()
+                && $this->getRightTableAliasOrName() == $join->getRightTableAliasOrName();
     }
 
     /**
