@@ -32,12 +32,12 @@ class ModelCriteriaWithSchemaTest extends SchemasTestBase
     public static function conditionsForTestReplaceNamesWithSchemas()
     {
         return array(
-            array('ContestBookstoreContest.PrizeBookId = ?', 'PrizeBookId', 'contest.bookstore_contest.prize_book_id = ?'), // basic case
-            array('ContestBookstoreContest.PrizeBookId=?', 'PrizeBookId', 'contest.bookstore_contest.prize_book_id=?'), // without spaces
-            array('ContestBookstoreContest.Id<= ?', 'Id', 'contest.bookstore_contest.id<= ?'), // with non-equal comparator
-            array('ContestBookstoreContest.BookstoreId LIKE ?', 'BookstoreId', 'contest.bookstore_contest.bookstore_id LIKE ?'), // with SQL keyword separator
-            array('(ContestBookstoreContest.BookstoreId) LIKE ?', 'BookstoreId', '(contest.bookstore_contest.bookstore_id) LIKE ?'), // with parenthesis
-            array('(ContestBookstoreContest.Id*1.5)=1', 'Id', '(contest.bookstore_contest.id*1.5)=1') // ignore numbers
+            array('Propel1TestSchemaContestBookstoreContest.PrizeBookId = ?', 'PrizeBookId', 'propel1_test_schema_contest.bookstore_contest.prize_book_id = ?'), // basic case
+            array('Propel1TestSchemaContestBookstoreContest.PrizeBookId=?', 'PrizeBookId', 'propel1_test_schema_contest.bookstore_contest.prize_book_id=?'), // without spaces
+            array('Propel1TestSchemaContestBookstoreContest.Id<= ?', 'Id', 'propel1_test_schema_contest.bookstore_contest.id<= ?'), // with non-equal comparator
+            array('Propel1TestSchemaContestBookstoreContest.BookstoreId LIKE ?', 'BookstoreId', 'propel1_test_schema_contest.bookstore_contest.bookstore_id LIKE ?'), // with SQL keyword separator
+            array('(Propel1TestSchemaContestBookstoreContest.BookstoreId) LIKE ?', 'BookstoreId', '(propel1_test_schema_contest.bookstore_contest.bookstore_id) LIKE ?'), // with parenthesis
+            array('(Propel1TestSchemaContestBookstoreContest.Id*1.5)=1', 'Id', '(propel1_test_schema_contest.bookstore_contest.id*1.5)=1') // ignore numbers
         );
     }
 
@@ -46,8 +46,8 @@ class ModelCriteriaWithSchemaTest extends SchemasTestBase
      */
     public function testReplaceNamesWithSchemas($origClause, $columnPhpName = false, $modifiedClause)
     {
-        $c = new TestableModelCriteriaWithSchema('bookstore-schemas', 'ContestBookstoreContest');
-        $this->doTestReplaceNames($c, ContestBookstoreContestPeer::getTableMap(),  $origClause, $columnPhpName = false, $modifiedClause);
+        $c = new TestableModelCriteriaWithSchema('bookstore-schemas', 'Propel1TestSchemaContestBookstoreContest');
+        $this->doTestReplaceNames($c, Propel1TestSchemaContestBookstoreContestPeer::getTableMap(),  $origClause, $columnPhpName = false, $modifiedClause);
     }
 
     public function doTestReplaceNames($c, $tableMap, $origClause, $columnPhpName = false, $modifiedClause)

@@ -2,7 +2,7 @@
 <database name="bookstore-schemas" defaultIdMethod="native"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:noNamespaceSchemaLocation="../../../generator/resources/xsd/database.xsd"
-  schema="bookstore_schemas">
+  schema="propel1_test_schema_bookstore">
 
 	<table name="book" description="Book Table">
 		<column name="id" required="true" primaryKey="true" autoIncrement="true" type="INTEGER" description="Book Id" />
@@ -35,7 +35,7 @@
 			<parameter name="name" value="total_contest_entries" />
 			<parameter name="expression" value="COUNT(customer_id)" />
 			<parameter name="foreign_table" value="bookstore_contest_entry" />
-			<parameter name="foreign_schema" value="contest" />
+			<parameter name="foreign_schema" value="propel1_test_schema_contest" />
 		</behavior>
 	</table>
 
@@ -45,10 +45,10 @@
 		<column name="second_contest" type="INTEGER"/>
 		<column name="name" type="VARCHAR" size="255" />
 		<column name="join_date" type="DATE" />
-		<foreign-key foreignTable="bookstore_contest" foreignSchema="contest">
+		<foreign-key foreignTable="bookstore_contest" foreignSchema="propel1_test_schema_contest">
 			<reference local="first_contest" foreign="id"/>
 		</foreign-key>
-		<foreign-key foreignTable="bookstore_contest" foreignSchema="contest">
+		<foreign-key foreignTable="bookstore_contest" foreignSchema="propel1_test_schema_contest">
 			<reference local="second_contest" foreign="id"/>
 		</foreign-key>
 	</table>
@@ -65,38 +65,38 @@
 	</table>
 
 	<!-- Test Views (read-only tables) -->
-	<table name="contest_view" readOnly="true" schema="contest">
+	<table name="contest_view" readOnly="true" schema="propel1_test_schema_contest">
 		<column name="id" type="INTEGER" primaryKey="true" autoIncrement="true" />
 		<column name="name" type="VARCHAR" size="100" />
 	</table>
 
-	<table name="bookstore_contest" schema="contest">
+	<table name="bookstore_contest" schema="propel1_test_schema_contest">
 		<column name="id" type="INTEGER" primaryKey="true" autoIncrement="true" />
 		<column name="bookstore_id" type="INTEGER" />
 		<column name="prize_book_id" type="INTEGER" />
-		<foreign-key foreignTable="bookstore" foreignSchema="bookstore_schemas" onDelete="cascade">
+		<foreign-key foreignTable="bookstore" foreignSchema="propel1_test_schema_bookstore" onDelete="cascade">
 			<reference local="bookstore_id" foreign="id" />
 		</foreign-key>
 	</table>
 
-	<table name="second_hand_book" schema="second_hand_books">
+	<table name="second_hand_book" schema="propel1_test_schema_second_hand_books">
 		<column name="age" type="INTEGER" />
 		<behavior name="concrete_inheritance">
 			<parameter name="extends" value="book" />
-			<parameter name="schema" value="bookstore_schemas" />
+			<parameter name="schema" value="propel1_test_schema_bookstore" />
 		</behavior>
 	</table>
 
 
-	<table name="bookstore_contest_entry" schema="contest" reloadOnInsert="true">
+	<table name="bookstore_contest_entry" schema="propel1_test_schema_contest" reloadOnInsert="true">
 		<column name="bookstore_id" type="INTEGER" primaryKey="true" />
 		<column name="contest_id" type="INTEGER" primaryKey="true" />
 		<column name="customer_id" type="INTEGER" primaryKey="true" />
 		<column name="entry_date" type="TIMESTAMP" defaultExpr="CURRENT_TIMESTAMP" />
-		<foreign-key foreignTable="bookstore" foreignSchema="bookstore_schemas" onDelete="cascade">
+		<foreign-key foreignTable="bookstore" foreignSchema="propel1_test_schema_bookstore" onDelete="cascade">
 			<reference local="bookstore_id" foreign="id" />
 		</foreign-key>
-		<foreign-key foreignTable="customer" foreignSchema="bookstore_schemas" onDelete="cascade">
+		<foreign-key foreignTable="customer" foreignSchema="propel1_test_schema_bookstore" onDelete="cascade">
 			<reference local="customer_id" foreign="id" />
 		</foreign-key>
 		<foreign-key foreignTable="bookstore_contest" onDelete="cascade">

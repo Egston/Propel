@@ -23,7 +23,7 @@ class AggregateColumnBehaviorWithSchemaTest extends SchemasTestBase
     protected function setUp()
     {
         parent::setUp();
-        $this->con = Propel::getConnection(BookstoreSchemasBookstorePeer::DATABASE_NAME);
+        $this->con = Propel::getConnection(Propel1TestSchemaBookstoreBookstorePeer::DATABASE_NAME);
         $this->con->beginTransaction();
     }
 
@@ -35,44 +35,44 @@ class AggregateColumnBehaviorWithSchemaTest extends SchemasTestBase
 
     public function testParametersWithSchema()
     {
-        $storeTable = BookstoreSchemasBookstorePeer::getTableMap();
+        $storeTable = Propel1TestSchemaBookstoreBookstorePeer::getTableMap();
         $this->assertEquals(count($storeTable->getColumns()), 8, 'AggregateColumn adds one column by default');
-        $this->assertTrue(method_exists('BookstoreSchemasBookstore', 'getTotalContestEntries'));
+        $this->assertTrue(method_exists('Propel1TestSchemaBookstoreBookstore', 'getTotalContestEntries'));
     }
 
     public function testComputeWithSchema()
     {
-        ContestBookstoreContestEntryQuery::create()->deleteAll($this->con);
-        BookstoreSchemasBookstoreQuery::create()->deleteAll($this->con);
-        BookstoreSchemasCustomerQuery::create()->deleteAll($this->con);
-        ContestBookstoreContestQuery::create()->deleteAll($this->con);
+        Propel1TestSchemaContestBookstoreContestEntryQuery::create()->deleteAll($this->con);
+        Propel1TestSchemaBookstoreBookstoreQuery::create()->deleteAll($this->con);
+        Propel1TestSchemaBookstoreCustomerQuery::create()->deleteAll($this->con);
+        Propel1TestSchemaContestBookstoreContestQuery::create()->deleteAll($this->con);
 
-        $store = new BookstoreSchemasBookstore();
+        $store = new Propel1TestSchemaBookstoreBookstore();
         $store->setStoreName('A Name');
         $store->save($this->con);
         $this->assertEquals(0, $store->computeTotalContestEntries($this->con), 'The compute method returns 0 for objects with no related objects');
 
-        $contest = new ContestBookstoreContest();
-        $contest->setBookstoreSchemasBookstore($store);
+        $contest = new Propel1TestSchemaContestBookstoreContest();
+        $contest->setPropel1TestSchemaBookstoreBookstore($store);
         $contest->save($this->con);
-        $customer1 = new BookstoreSchemasCustomer();
+        $customer1 = new Propel1TestSchemaBookstoreCustomer();
         $customer1->save($this->con);
 
-        $entry1 = new ContestBookstoreContestEntry();
-        $entry1->setBookstoreSchemasBookstore($store);
-        $entry1->setContestBookstoreContest($contest);
-        $entry1->setBookstoreSchemasCustomer($customer1);
+        $entry1 = new Propel1TestSchemaContestBookstoreContestEntry();
+        $entry1->setPropel1TestSchemaBookstoreBookstore($store);
+        $entry1->setPropel1TestSchemaContestBookstoreContest($contest);
+        $entry1->setPropel1TestSchemaBookstoreCustomer($customer1);
         $entry1->save($this->con, true); // skip reload to avoid #1151 for now
 
         $this->assertEquals(1, $store->computeTotalContestEntries($this->con), 'The compute method computes the aggregate function on related objects');
 
-        $customer2 = new BookstoreSchemasCustomer();
+        $customer2 = new Propel1TestSchemaBookstoreCustomer();
         $customer2->save($this->con);
 
-        $entry2 = new ContestBookstoreContestEntry();
-        $entry2->setBookstoreSchemasBookstore($store);
-        $entry2->setContestBookstoreContest($contest);
-        $entry2->setBookstoreSchemasCustomer($customer2);
+        $entry2 = new Propel1TestSchemaContestBookstoreContestEntry();
+        $entry2->setPropel1TestSchemaBookstoreBookstore($store);
+        $entry2->setPropel1TestSchemaContestBookstoreContest($contest);
+        $entry2->setPropel1TestSchemaBookstoreCustomer($customer2);
         $entry2->save($this->con, true); // skip reload to avoid #1151 for now
 
         $this->assertEquals(2, $store->computeTotalContestEntries($this->con), 'The compute method computes the aggregate function on related objects');
