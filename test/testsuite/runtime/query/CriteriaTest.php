@@ -910,6 +910,24 @@ class CriteriaTest extends BookstoreTestBase
         $this->assertEquals($expectedSQL, $con->getLastExecutedQuery());
     }
 
+    public function testAddJoinMultipleWithAlias()
+    {
+        $con = Propel::getConnection(BookPeer::DATABASE_NAME);
+        $c = new Criteria();
+
+        $c->addAlias('teenageAuthor', AuthorPeer::TABLE_NAME);
+        $c->addMultipleJoin(
+                array(
+                    array('book.author_id', 'teenageAuthor.id'), // test right alias
+                    array('teenageAuthor.age', 18, '<') // test left alias
+                )
+            );
+        BookPeer::doSelect($c, $con);
+
+        $expectedSQL = 'SELECT book.id, book.title, book.isbn, book.price, book.publisher_id, book.author_id FROM book INNER JOIN author teenageAuthor ON (book.author_id=teenageAuthor.id AND teenageAuthor.age<18)';
+        $this->assertEquals($expectedSQL, $con->getLastExecutedQuery());
+    }
+
     /**
      * Tests adding duplicate joins.
      * @link       http://trac.propelorm.org/ticket/613
