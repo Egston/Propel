@@ -17,7 +17,7 @@ fi
 VERBOSE=$(echo "$*" | grep -Ewo -e '-v+' | cut -d- -f2 | tr -d '\n' | wc -c)
 
 FIXTURES_DIR="$(dirname $0)/fixtures";
-ROOT_DIR="$(realpath -e "$(dirname $0)/..")"
+ROOT_DIR="$(readlink -e "$(dirname $0)/..")"
 
 if [ ! -d "$FIXTURES_DIR" ] ; then
     echo "ERROR: {$FIXTURES_DIR} directory not found !" >&2
