@@ -17,6 +17,7 @@ Propel::init(dirname(__FILE__) . '/../../../fixtures/bookstore/build/conf/bookst
  */
 abstract class BookstoreTestBase extends PHPUnit_Framework_TestCase
 {
+    /** @var PropelPDO */
     protected $con;
 
     /**
@@ -42,6 +43,17 @@ abstract class BookstoreTestBase extends PHPUnit_Framework_TestCase
         // ('Cannot commit because a nested transaction was rolled back')
         if ($this->con->isCommitable()) {
             $this->con->commit();
+        }
+        // And rollback to ensure the next test starts with new (and commitable)
+        // transaction; otherwise tests will start to fail.
+        $nestedTransactionCount = $this->con->getNestedTransactionCount();
+        if ($nestedTransactionCount > 0) {
+            $rolledback = $this->con->forceRollBack();
+            if (!$rolledback) {
+                throw new \Exception('Failed transaction(s) could not be rollbacked');
+            }
+            // In case the test haven't failed, fail it now.
+            $this->assertEquals(0, $nestedTransactionCount, 'Must not be in transaction after test is finished.');
         }
     }
 }
