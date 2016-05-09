@@ -5851,7 +5851,7 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
         } else {
             // readonly object - save only related objects
             $script .= "
-            \$affectedRows = \$this->doSaveWithRelated(\$con" . ($reloadOnUpdate || $reloadOnInsert ? ", \$skipReload" : "") . ");
+            \$affectedRows = \$this->doSaveWithRelated(\$con, false" . ($reloadOnUpdate || $reloadOnInsert ? ", \$skipReload" : "") . ");
             \$con->commit();";
         }
 
