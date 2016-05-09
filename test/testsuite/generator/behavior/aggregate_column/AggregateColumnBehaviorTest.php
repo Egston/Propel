@@ -55,7 +55,6 @@ class AggregateColumnBehaviorTest extends BookstoreTestBase
         $comment = new TestableComment();
         $comment->setAggregatePost($post);
         $comment->save($this->con);
-        $this->assertNull($post->getNbComments());
         $post->updateNbComments($this->con);
         $this->assertEquals(1, $post->getNbComments(), 'The update method updates the aggregate column');
         $comment->delete($this->con);
@@ -239,6 +238,8 @@ class AggregateColumnBehaviorTest extends BookstoreTestBase
         $post1->save($this->con);
 
         $this->assertEquals(5, $post1->getNbComments(), 'the post has 5 comments');
+        // save() should always call computeNbComments() to refresh count,
+        // even if the object is not modified
         $this->assertEquals(1, $post1->countComputeCall, 'Only one call to count nbComment');
     }
 

@@ -67,9 +67,54 @@ abstract class BaseObject
     protected $virtualColumns = array();
 
     /**
-     * Empty constructor (this allows people with their own BaseObject implementation to use its constructor)
+     * Hash id of this object as returned by spl_object_hash().
+     *
+     * This property is recalculated each time new object is created, cloned or
+     * unserialized.
+     *
+     * It's public to allow fast lookups without a relatively slow call to
+     * a getter function.
+     *
+     * @var string|null
+     */
+    public $objectHash = null;
+
+    /**
+     * Sets {@link $this->objectHash} to hash calculated by spl_object_hash().
      */
     public function __construct()
+    {
+        $this->objectHash = spl_object_hash($this);
+    }
+
+    /**
+     * Clears Propel internal properties private to each class instance,
+     * not related to data.
+     *
+     * This is called after unserializing or cloning a object.
+     *
+     * By default this method ensures consistency:
+     * - $objectHash is recalculated using spl_object_hash().
+     *
+     * @param boolean $ensureConsistency (optional) If FALSE, don't ensure
+     *                                              consistency, just clear
+     *                                              the properties
+     *
+     * @throws PropelException If property cannot be cleared.
+     */
+    public function clearInternalProperties($ensureConsistency = true)
+    {
+        if ($ensureConsistency) {
+            $this->objectHash = spl_object_hash($this);
+        } else {
+            $this->objectHash = null;
+        }
+    }
+
+    /**
+     * Method called on each object change.
+     */
+    protected function onChange()
     {
     }
 
@@ -127,6 +172,7 @@ abstract class BaseObject
     public function setNew($b)
     {
         $this->_new = (boolean) $b;
+        $this->onChange();
 
         return $this;
     }
@@ -151,6 +197,7 @@ abstract class BaseObject
     public function setDeleted($b)
     {
         $this->_deleted = (boolean) $b;
+        $this->onChange();
 
         return $this;
     }
@@ -292,6 +339,7 @@ abstract class BaseObject
         if ($col === null) {
             $this->_validated = true;
         }
+        $this->onChange();
 
         return $this;
     }
@@ -455,6 +503,16 @@ abstract class BaseObject
         $this->clearAllReferences();
 
         return array_keys(get_object_vars($this));
+    }
+
+    public function __wakeup()
+    {
+        $this->clearInternalProperties();
+    }
+
+    public function __clone()
+    {
+        $this->clearInternalProperties();
     }
 
     /**

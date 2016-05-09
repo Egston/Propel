@@ -942,12 +942,7 @@ class GeneratedObjectRelTest extends BookstoreEmptyTestBase
         ;
         $summary
             ->expects($this->once())
-            ->method('isNew')
-            ->will($this->returnValue(false))
-        ;
-        $summary
-            ->expects($this->once())
-            ->method('isModified')
+            ->method('isDirty')
             ->will($this->returnValue(false))
         ;
         $summary

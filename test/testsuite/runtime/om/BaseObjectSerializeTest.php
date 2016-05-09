@@ -23,8 +23,13 @@ class BaseObjectSerializeTest extends BookstoreTestBase
     public function testSerializeEmptyObject()
     {
         $book = new Book();
-        $sb = serialize($book);
-        $this->assertEquals($book, unserialize($sb));
+        $b = unserialize(serialize($book));
+
+        $this->assertNotEquals($book->objectHash, $b->objectHash);
+
+        $book->objectHash = null;
+        $b->objectHash = null;
+        $this->assertEquals($book, $b);
     }
 
     public function testSerializePopulatedObject()
@@ -32,8 +37,11 @@ class BaseObjectSerializeTest extends BookstoreTestBase
         $book = new Book();
         $book->setTitle('Foo1');
         $book->setISBN('1234');
-        $sb = serialize($book);
-        $this->assertEquals($book, unserialize($sb));
+        $b = unserialize(serialize($book));
+
+        $book->objectHash = null;
+        $b->objectHash = null;
+        $this->assertEquals($book, $b);
     }
 
     public function testSerializePersistedObject()
@@ -42,8 +50,11 @@ class BaseObjectSerializeTest extends BookstoreTestBase
         $book->setTitle('Foo2');
         $book->setISBN('1234');
         $book->save();
-        $sb = serialize($book);
-        $this->assertEquals($book, unserialize($sb));
+        $b = unserialize(serialize($book));
+
+        $book->objectHash = null;
+        $b->objectHash = null;
+        $this->assertEquals($book, $b);
     }
 
     public function testSerializeHydratedObject()
@@ -55,8 +66,11 @@ class BaseObjectSerializeTest extends BookstoreTestBase
         BookPeer::clearInstancePool();
 
         $book = BookQuery::create()->findOneByTitle('Foo3');
-        $sb = serialize($book);
-        $this->assertEquals($book, unserialize($sb));
+        $b = unserialize(serialize($book));
+
+        $book->objectHash = null;
+        $b->objectHash = null;
+        $this->assertEquals($book, $b);
     }
 
     public function testSerializeObjectWithRelations()
@@ -69,10 +83,12 @@ class BaseObjectSerializeTest extends BookstoreTestBase
         $book->setISBN('1234');
         $book->setAuthor($author);
         $book->save();
-        $b = clone $book;
-        $sb = serialize($b);
+        $b = unserialize(serialize(clone $book));
         $book->clearAllReferences();
-        $this->assertEquals($book, unserialize($sb));
+
+        $book->objectHash = null;
+        $b->objectHash = null;
+        $this->assertEquals($book, $b);
     }
 
     public function testSerializeObjectWithCollections()
@@ -89,9 +105,11 @@ class BaseObjectSerializeTest extends BookstoreTestBase
         $author->addBook($book1);
         $author->addBook($book2);
         $author->save();
-        $a = clone $author;
-        $sa = serialize($a);
+        $a = unserialize(serialize(clone $author));
         $author->clearAllReferences();
-        $this->assertEquals($author, unserialize($sa));
+
+        $author->objectHash = null;
+        $a->objectHash = null;
+        $this->assertEquals($author, $a);
     }
 }

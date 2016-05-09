@@ -31,7 +31,10 @@ class BaseObjectHashCodeTest extends BookstoreTestBase
         $author->setLastName('JAne');
         $author->addBook($book1);
 
+        $author->clearInternalProperties(false);
         $a = clone $author;
+        $a->clearInternalProperties(false);
+
         $a->hashCode();
 
         $this->assertEquals($author, $a);
@@ -44,12 +47,14 @@ class BaseObjectHashCodeTest extends BookstoreTestBase
         $book1->setISBN('1234');
 
         $author = new Author();
+        $author->objectHash = null;
         $author->setFirstName('JAne');
         $author->setLastName('JAne');
         $author->addBook($book1);
         $author->save();
 
         $a = clone $author;
+        $a->objectHash = null;
         $a->hashCode();
 
         $this->assertEquals($author, $a);

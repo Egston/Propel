@@ -293,6 +293,8 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
             $this->addConstructor($script);
         }
 
+        $this->addDestructor($script);
+
         $this->addColumnAccessorMethods($script);
         $this->addColumnMutatorMethods($script);
 
@@ -301,9 +303,19 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
         $this->addHydrate($script);
         $this->addEnsureConsistency($script);
 
+        $this->addIsIncosistent($script);
+        $this->addIsDirty($script);
+        $this->addisDirtyWithRelated($script);
+        $this->addResetRelated($script);
+
+        $this->addOnChange($script);
+
         if (!$table->isReadOnly()) {
             $this->addManipulationMethods($script);
         }
+        $this->addSaveWithRelated($script);
+        $this->addDoSaveWithRelated($script);
+
 
         if ($this->isAddValidateMethod()) {
             $this->addValidationMethods($script);
@@ -337,6 +349,7 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
         $this->addRefFKMethods($script);
         $this->addCrossFKMethods($script);
         $this->addClear($script);
+        $this->addClearInternalProperties($script);
         $this->addClearAllReferences($script);
 
         $this->addPrimaryString($script);
@@ -422,6 +435,8 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
         $this->addAlreadyInSaveAttribute($script);
         $this->addAlreadyInValidationAttribute($script);
         $this->addAlreadyInClearAllReferencesDeepAttribute($script);
+
+        $this->addRelatedProperties($script);
 
         // apply behaviors
         $this->applyBehaviorModifier('objectAttributes', $script, "	");
@@ -643,6 +658,21 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
         $this->addConstructorOpen($script);
         $this->addConstructorBody($script);
         $this->addConstructorClose($script);
+    }
+
+    /**
+     * Adds the destructor for this object.
+     *
+     * @param string &$script The script will be modified in this method.
+     */
+    protected function addDestructor(&$script)
+    {
+        $script .= "
+    public function __destruct()
+    {
+        \$this->resetRelated();
+    }
+";
     }
 
     /**
@@ -1917,6 +1947,7 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
             \$this->$clo = \$v;
             \$this->modifiedColumns[] = " . $this->getColumnConstant($col) . ";
             \$this->_validated = false;
+            \$this->onChange();
         }
 ";
         $this->addMutatorClose($script, $col);
@@ -1953,6 +1984,7 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
             \$this->$clo = \$v;
             \$this->modifiedColumns[] = " . $this->getColumnConstant($col) . ";
             \$this->_validated = false;
+            \$this->onChange();
         }
 ";
         $this->addMutatorClose($script, $col);
@@ -2012,6 +2044,7 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
             \$this->$clo = \$v;
             \$this->modifiedColumns[] = " . $this->getColumnConstant($col) . ";
             \$this->_validated = false;
+            \$this->onChange();
         }
 ";
         $this->addMutatorClose($script, $col);
@@ -2995,6 +3028,8 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
 
         $script .= "
         } // if (deep)
+
+        \$this->onChange();
     }
 ";
     } // addReload()
@@ -3444,6 +3479,8 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
 
         $script .= "
 
+        \$this->onChange();
+
         return \$this;
     }
 ";
@@ -3515,12 +3552,14 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
         if (\$this->$varName === null && ($conditional) && \$doQuery) {";
         if ($useRetrieveByPk) {
             $script .= "
-            \$this->$varName = " . $fkQueryBuilder->getClassname() . "::create()->findPk($localColumns, \$con);";
+            \$this->$varName = " . $fkQueryBuilder->getClassname() . "::create()->findPk($localColumns, \$con);
+            \$this->onChange();";
         } else {
             $script .= "
             \$this->$varName = " . $fkQueryBuilder->getClassname() . "::create()
                 ->filterBy" . $this->getRefFKPhpNameAffix($fk, $plural = false) . "(\$this) // here
-                ->findOne(\$con);";
+                ->findOne(\$con);
+            \$this->onChange();";
         }
         if ($fk->isLocalPrimaryKey()) {
             $script .= "
@@ -3797,6 +3836,8 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
     {
         \$this->$collName = null; // important to set this to null since that means it is uninitialized
         \$this->{$collName}Partial = null;
+
+        \$this->onChange();
 
         return \$this;
     }
@@ -4100,6 +4141,8 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
         \$this->{$collName} = \${$inputCollection};
         \$this->{$collName}Partial = false;
 
+        \$this->onChange();
+
         return \$this;
     }
 ";
@@ -4126,6 +4169,8 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
     {
         \$this->{$collName}[]= \${$lowerRelatedObjectClassName};
         \${$lowerRelatedObjectClassName}->set" . $this->getFKPhpNameAffix($refFK, $plural = false) . "(\$this);
+
+        \$this->onChange();
     }
 ";
     }
@@ -4173,6 +4218,8 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
         $script .= "
             \${$lowerRelatedObjectClassName}->set{$relCol}(null);
         }
+
+        \$this->onChange();
 
         return \$this;
     }
@@ -4251,6 +4298,8 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
             \$v->set" . $this->getFKPhpNameAffix($refFK, $plural = false) . "(\$this);
         }
 
+        \$this->onChange();
+
         return \$this;
     }
 ";
@@ -4282,8 +4331,16 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
 ";
     }
 
-    protected function addCrossFkScheduledForDeletion(&$script, $refFK, $crossFK)
+    protected function addCrossFkScheduledForDeletion(&$script, $refFK, $crossFK, $withRelated = false)
     {
+        if ($withRelated) {
+            $saveFuncName = 'saveWithRelated';
+            $isModifiedAccessor = 'isDirtyWithRelated';
+        } else {
+            $saveFuncName = 'save';
+            $isModifiedAccessor = $crossFK->getForeignTable()->isReadOnly() ? 'isModified()' : 'isDirty()';
+        }
+
         $queryClassName = $this->getNewStubQueryBuilder($refFK->getTable())->getClassname();
         $relatedName = $this->getFKPhpNameAffix($crossFK, $plural = true);
 
@@ -4312,25 +4369,28 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
                         ->filterByPrimaryKeys(\$pks)
                         ->delete(\$con);
                     \$this->{$lowerRelatedName}ScheduledForDeletion = null;
+                    \$this->onChange();
                 }
 
                 foreach (\$this->get{$relatedName}() as \${$lowerSingleRelatedName}) {
-                    if (\${$lowerSingleRelatedName}->isModified()) {
-                        \${$lowerSingleRelatedName}->save(\$con);
+                    if (\${$lowerSingleRelatedName}->{$isModifiedAccessor}) {
+                        \${$lowerSingleRelatedName}->{$saveFuncName}(\$con);
                     }
                 }
             } elseif (\$this->coll{$relatedName}) {
                 foreach (\$this->coll{$relatedName} as \${$lowerSingleRelatedName}) {
-                    if (\${$lowerSingleRelatedName}->isModified()) {
-                        \${$lowerSingleRelatedName}->save(\$con);
+                    if (\${$lowerSingleRelatedName}->{$isModifiedAccessor}) {
+                        \${$lowerSingleRelatedName}->{$saveFuncName}(\$con);
                     }
                 }
             }
 ";
     }
 
-    protected function addRefFkScheduledForDeletion(&$script, ForeignKey $refFK)
+    protected function addRefFkScheduledForDeletion(&$script, ForeignKey $refFK, $withRelated = false)
     {
+        $saveFuncName = $withRelated ? 'saveWithRelated' : 'save';
+
         $relatedName = $this->getRefFKPhpNameAffix($refFK, $plural = true);
 
         $lowerRelatedName = lcfirst($relatedName);
@@ -4351,11 +4411,12 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
             $script .= "
                     foreach (\$this->{$lowerRelatedName}ScheduledForDeletion as \${$lowerSingleRelatedName}) {
                         // need to save related object because we set the relation to null
-                        \${$lowerSingleRelatedName}->save(\$con);
+                        \${$lowerSingleRelatedName}->{$saveFuncName}(\$con);
                     }";
         }
         $script .= "
                     \$this->{$lowerRelatedName}ScheduledForDeletion = null;
+                    \$this->onChange();
                 }
             }
 ";
@@ -4408,6 +4469,7 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
     {
         \$this->$collName = null; // important to set this to null since that means it is uninitialized
         \$this->{$collName}Partial = null;
+        \$this->onChange();
 
         return \$this;
     }
@@ -4439,6 +4501,7 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
     {
         \$this->$collName = new PropelObjectCollection();
         \$this->{$collName}->setModel('$relatedObjectClassName');
+        \$this->onChange();
     }
 ";
     }
@@ -4481,6 +4544,7 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
                     return \$$collName;
                 }
                 \$this->$collName = \$$collName;
+                \$this->onChange();
             }
         }
 
@@ -4525,6 +4589,7 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
         }
 
         \$this->$collName = \${$inputCollection};
+        \$this->onChange();
 
         return \$this;
     }
@@ -4611,6 +4676,7 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
         if (!\$this->" . $collName . "->contains(" . $crossObjectName . ")) { // only add it if the **same** object is not already associated
             \$this->doAdd{$relatedObjectClassName}($crossObjectName);
             \$this->" . $collName . "[] = " . $crossObjectName . ";
+            \$this->onChange();
 
             if (\$this->" . $scheduledForDeletion . " and \$this->" . $scheduledForDeletion . "->contains(" . $crossObjectName . ")) {
                 \$this->" . $scheduledForDeletion . "->remove(\$this->" . $scheduledForDeletion . "->search(" . $crossObjectName . "));
@@ -4657,6 +4723,7 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
 
             \$foreignCollection = \${$lowerRelatedObjectClassName}->get{$selfRelationNamePlural}();
             \$foreignCollection[] = \$this;
+            \${$lowerRelatedObjectClassName}->onChange();
         }
     }
 ";
@@ -4704,6 +4771,7 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
                 \$this->{$M2MScheduledForDeletion}->clear();
             }
             \$this->{$M2MScheduledForDeletion}[]= {$crossObjectName};
+            \$this->onChange();
         }
 
         return \$this;
@@ -4768,10 +4836,18 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
 ";
 
             foreach ($table->getForeignKeys() as $fk) {
+                $readOnly = $fk->getForeignTable()->isReadOnly();
                 $aVarName = $this->getFKVarName($fk);
                 $script .= "
-            if (\$this->$aVarName !== null) {
-                if (\$this->" . $aVarName . "->isModified() || \$this->" . $aVarName . "->isNew()) {
+            if (\$this->$aVarName !== null) {";
+                if ($readOnly) {
+                    $script .= "
+                if (\$this->" . $aVarName . "->isModified() || \$this->" . $aVarName . "->isNew()) {";
+                } else {
+                    $script .= "
+                if (\$this->" . $aVarName . "->isDirty()) {";
+                }
+                $script .= "
                     \$affectedRows += \$this->" . $aVarName . "->save(\$con);
                 }
                 \$this->set" . $this->getFKPhpNameAffix($fk, $plural = false) . "(\$this->$aVarName);
@@ -4830,11 +4906,19 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
         }
 
         foreach ($table->getReferrers() as $refFK) {
+            $readOnly = $refFK->getForeignTable()->isReadOnly();
             if ($refFK->isLocalPrimaryKey()) {
                 $varName = $this->getPKRefFKVarName($refFK);
                 $script .= "
-            if (\$this->$varName !== null) {
-                if (!\$this->{$varName}->isDeleted() && (\$this->{$varName}->isNew() || \$this->{$varName}->isModified())) {
+            if (\$this->$varName !== null) {";
+                if ($readOnly) {
+                    $script .= "
+                if (!\$this->{$varName}->isDeleted() && (\$this->{$varName}->isNew() || \$this->{$varName}->isModified())) {";
+                } else {
+                    $script .= "
+                if (!\$this->{$varName}->isDeleted() && \$this->{$varName}->isDirty()) {";
+                }
+                $script .= "
                         \$affectedRows += \$this->{$varName}->save(\$con);
                 }
             }
@@ -4845,19 +4929,28 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
                 $collName = $this->getRefFKCollVarName($refFK);
                 $script .= "
             if (\$this->$collName !== null) {
-                foreach (\$this->$collName as \$referrerFK) {
-                    if (!\$referrerFK->isDeleted() && (\$referrerFK->isNew() || \$referrerFK->isModified())) {
+                foreach (\$this->$collName as \$referrerFK) {";
+                if ($readOnly) {
+                    $script .= "
+                    if (!\$referrerFK->isDeleted() && (\$referrerFK->isNew() || \$referrerFK->isModified())) {";
+                } else {
+                    $script .= "
+                    if (!\$referrerFK->isDeleted() && \$referrerFK->isDirty()) {";
+                }
+                $script .= "
                         \$affectedRows += \$referrerFK->save(\$con);
                     }
                 }
             }
 ";
             } // if refFK->isLocalPrimaryKey()
-
         } /* foreach getReferrers() */
 
         $script .= "
             \$this->alreadyInSave = false;
+            if (!\$this->alreadyInSaveWithRelated) {
+                \$this->resetRelated();
+            }
 ";
         if ($reloadOnInsert || $reloadOnUpdate) {
             $script .= "
@@ -4871,6 +4964,173 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
 
         return \$affectedRows;
     } // doSave()
+";
+    }
+
+    /**
+     * Adds the workhouse doSaveWithRelated() method.
+     *
+     * Keep this method in sync with addDoSave().
+     *
+     * @param string &$script The script will be modified in this method.
+     */
+    protected function addDoSaveWithRelated(&$script)
+    {
+        $table = $this->getTable();
+
+        $readOnly = $table->isReadOnly();
+        $reloadOnUpdate = !$readOnly && $table->isReloadOnUpdate();
+        $reloadOnInsert = !$readOnly && $table->isReloadOnInsert();
+
+        $script .= "
+    /**
+     * Performs the work of inserting or updating the row in the database.
+     *
+     * This method is called from saveWithRelated() and must not be called
+     * directly.
+     *
+     * If \$doSave is TRUE, the object is inserted (if it is new), or updated.
+     *
+     * In any case, all related dirty objects are passed to method
+     * saveWithRelated().
+     *
+     * \$doSave should be set to FALSE, if you traverse over a object you don't
+     * want to save itself (e.g. it's deleted or one of pre*() hooks returned
+     * false) but you want to handle related objects.
+     *
+     * @param PropelPDO \$con
+     * @param boolean   \$doSave Whether the object itself should be saved; does
+                                 not influence saving of dirty related objects.";
+        if ($reloadOnUpdate || $reloadOnInsert) {
+            $script .= "
+     * @param boolean \$skipReload Whether to skip the reload for this object from database.";
+        }
+        $script .= "
+     *
+     * @return int    The number of rows affected by this insert/update and any
+                      referring fk objects' save() operations.
+     *
+     * @throws PropelException
+     *
+     * @see        saveWithRelated()
+     */
+    protected function doSaveWithRelated(PropelPDO \$con, \$doSave" . ($reloadOnUpdate || $reloadOnInsert ? ", \$skipReload = false" : "") . ")
+    {
+        if (!\$this->alreadyInSaveWithRelated) {
+            throw new PropelException(__METHOD__ . ' cannot be invoked directly, call saveWithRelated() instead.');
+        }
+
+        \$affectedRows = 0; // initialize var to track total num of affected rows
+
+";
+        if ($reloadOnInsert || $reloadOnUpdate) {
+            $script .= "
+        \$reloadObject = false;
+";
+        }
+
+        if (count($table->getForeignKeys())) {
+
+            $script .= "
+        // We call the save method on the following object(s) if they
+        // were passed to this object by their corresponding set
+        // method.  This object relates to these object(s) by a
+        // foreign key reference.
+";
+
+            foreach ($table->getForeignKeys() as $fk) {
+                $aVarName = $this->getFKVarName($fk);
+                $script .= "
+        if (\$this->$aVarName !== null) {
+            \$affectedRows += \$this->" . $aVarName . "->saveWithRelated(\$con);
+            \$this->set" . $this->getFKPhpNameAffix($fk, $plural = false) . "(\$this->$aVarName);
+        }
+";
+            } // foreach foreign k
+        } // if (count(foreign keys))
+
+        $script .= "
+        if (\$doSave && (\$this->isNew() || \$this->isModified())) {
+            // persist changes
+            if (\$this->isNew()) {
+                \$this->doInsert(\$con);";
+        if ($reloadOnInsert) {
+            $script .= "
+                if (!\$skipReload) {
+                    \$reloadObject = true;
+                }";
+        }
+        $script .= "
+            } else {
+                \$this->doUpdate(\$con);";
+        if ($reloadOnUpdate) {
+            $script .= "
+                if (!\$skipReload) {
+                    \$reloadObject = true;
+                }";
+        }
+        $script .= "
+            }
+            \$affectedRows += 1;";
+
+        // We need to rewind any LOB columns
+        foreach ($table->getColumns() as $col) {
+            $clo = strtolower($col->getName());
+            if ($col->isLobType()) {
+                $script .= "
+            // Rewind the $clo LOB column, since PDO does not rewind after inserting value.
+            if (\$this->$clo !== null && is_resource(\$this->$clo)) {
+                rewind(\$this->$clo);
+            }
+";
+            }
+        }
+
+        $script .= "
+            \$this->resetModified();
+        }
+";
+
+        if ($table->hasCrossForeignKeys()) {
+            foreach ($table->getCrossFks() as $fkList) {
+                list($refFK, $crossFK) = $fkList;
+                $this->addCrossFkScheduledForDeletion($script, $refFK, $crossFK, true);
+            }
+        }
+
+        foreach ($table->getReferrers() as $refFK) {
+            if ($refFK->isLocalPrimaryKey()) {
+                $varName = $this->getPKRefFKVarName($refFK);
+                $script .= "
+        if (\$this->$varName !== null) {
+            \$affectedRows += \$this->{$varName}->saveWithRelated(\$con);
+        }
+";
+            } else {
+                $this->addRefFkScheduledForDeletion($script, $refFK, true);
+
+                $collName = $this->getRefFKCollVarName($refFK);
+                $script .= "
+        if (\$this->$collName !== null) {
+            foreach (\$this->$collName as \$referrerFK) {
+                \$affectedRows += \$referrerFK->saveWithRelated(\$con);
+            }
+        }
+";
+            } // if refFK->isLocalPrimaryKey()
+        } /* foreach getReferrers() */
+
+        if ($reloadOnInsert || $reloadOnUpdate) {
+            $script .= "
+        if (\$reloadObject) {
+            \$this->reload(\$con);
+        }
+";
+        }
+        $script .= "
+
+        return \$affectedRows;
+    } // doSaveWithRelated()
 ";
     }
 
@@ -5355,6 +5615,285 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
     }
 
     /**
+     * Adds the saveWithRelated() method.
+     *
+     * This method is also added to read-only objects.
+     *
+     * @param string &$script The script will be modified in this method.
+     */
+    protected function addSaveWithRelated(&$script)
+    {
+        $this->addSaveWithRelatedComment($script);
+        $this->addSaveWithRelatedOpen($script);
+        $this->addSaveWithRelatedBody($script);
+        $this->addSaveWithRelatedClose($script);
+    }
+
+    /**
+     * Adds the comment for the saveWithRelated method
+     *
+     * @param string &$script The script will be modified in this method.
+     *
+     * @see        addSave()
+     **/
+    protected function addSaveWithRelatedComment(&$script)
+    {
+        $table = $this->getTable();
+        $readOnly = $table->isReadOnly();
+        $reloadOnUpdate =  !$readOnly && $table->isReloadOnUpdate();
+        $reloadOnInsert = !$readOnly && $table->isReloadOnInsert();
+
+        $script .= "
+    /**";
+        if (!$readOnly) {
+            $script .= "
+     * Persists this and all related objects to the database.
+     *
+     * Unlike save(), this method saves any dirty object in whole relations chain;
+     * whereas save() will stop on first un-dirty object.
+     *
+     * If the object is new, it inserts it; otherwise an update is performed.
+     *
+     * All related objects will also be recursively persisted in the
+     * doSaveWithRelated() method.";
+        } else {
+            $script .= "
+     * Persists all related objects to the database.
+     *
+     * All related objects will be recursively persisted in the
+     * doSaveWithRelated() method.";
+        }
+        $script .= "
+     *
+     * Unlike save(), this method can operate on deleted objects - it will save
+     * related objects.
+     *
+     * This method wraps all precipitate database operations in a single
+     * transaction.";
+        if ($reloadOnUpdate) {
+            $script .= "
+     *
+     * Since this table was configured to reload rows on update, the object will
+     * be reloaded from the database if an UPDATE operation is performed (unless
+     * the \$skipReload parameter is true).";
+        }
+        if ($reloadOnInsert) {
+            $script .= "
+     *
+     * Since this table was configured to reload rows on insert, the object will
+     * be reloaded from the database if an INSERT operation is performed (unless
+     * the \$skipReload parameter is true).";
+        }
+        $script .= "
+     *
+     * @param PropelPDO \$con";
+        if ($reloadOnUpdate || $reloadOnInsert) {
+            $script .= "
+     * @param boolean   \$skipReload Whether to skip the reload for this object
+                        from database.";
+        }
+        $script .= "
+     *
+     * @return int      The number of rows affected by this insert/update and
+                        any referring fk objects' save() operations.
+     *
+     * @throws PropelException
+     * @throws Exception
+     *
+     * @see doSaveWithRelated()
+     *
+     * @todo Should we use {pre,post}{Save,Insert,Update}WithRelated variants?
+     */";
+    }
+
+    /**
+     * Adds the function declaration for the saveWithRelated method
+     *
+     * @param string &$script The script will be modified in this method.
+     *
+     * @see        addSave()
+     **/
+    protected function addSaveWithRelatedOpen(&$script)
+    {
+        $table = $this->getTable();
+        $reloadOnUpdate = !$table->isReadOnly() && $table->isReloadOnUpdate();
+        $reloadOnInsert = !$table->isReadOnly() && $table->isReloadOnInsert();
+        $script .= "
+    public function saveWithRelated(PropelPDO \$con = null" . ($reloadOnUpdate || $reloadOnInsert ? ", \$skipReload = false" : "") . ")
+    {";
+    }
+
+    /**
+     * Adds the function body for the saveWithRelated method
+     *
+     * @param string &$script The script will be modified in this method.
+     *
+     * @see        addSave()
+     **/
+    protected function addSaveWithRelatedBody(&$script)
+    {
+        $table = $this->getTable();
+        $readOnly = $table->isReadOnly();
+        $reloadOnUpdate = !$readOnly && $table->isReloadOnUpdate();
+        $reloadOnInsert = !$readOnly && $table->isReloadOnInsert();
+
+        $script .= "
+        if (\$this->alreadyInSaveWithRelated || \$this->isDirtyWithRelated === false) {
+            return 0;
+        }
+        \$this->alreadyInSaveWithRelated = true;
+
+        \$initial = !\$this->_relatedAlreadyInSaveWithRelated;
+
+        if (\$initial) {
+            if (!\$this->isDirtyWithRelated()) { // also fills \$this->_related array
+                \$this->alreadyInSaveWithRelated = false;
+                return 0;
+            }
+            foreach (\$this->_related as \$obj) {
+                \$obj->_relatedAlreadyInSaveWithRelated = true;
+            }
+        }
+
+        if (\$con === null) {
+            \$con = Propel::getConnection(" . $this->getPeerClassname() . "::DATABASE_NAME, Propel::CONNECTION_WRITE);
+        }
+
+        \$con->beginTransaction();
+        \$isInsert = \$this->isNew();
+        try {";
+
+        if (!$readOnly && $this->getGeneratorConfig()->getBuildProperty('addHooks')) {
+            // save with runtime hooks
+            $script .= "
+            if (\$this->isDeleted()) {
+                \$doSave = false;
+            } else {
+                \$doSave = \$this->preSave(\$con);";
+            $this->applyBehaviorModifier('preSave', $script, "			    ");
+            $script .= "
+                if (\$isInsert) {
+                    \$doSave = \$doSave && \$this->preInsert(\$con);";
+            $this->applyBehaviorModifier('preInsert', $script, "				    ");
+            $script .= "
+                } else {
+                    \$doSave = \$doSave && \$this->preUpdate(\$con);";
+            $this->applyBehaviorModifier('preUpdate', $script, "				    ");
+            $script .= "
+                }
+            }
+            \$affectedRows = \$this->doSaveWithRelated(\$con, \$doSave" . ($reloadOnUpdate || $reloadOnInsert ? ", \$skipReload" : "") . ");
+            if (\$this->isDeleted()) {
+                \$con->commit();
+            } else {
+                if (\$isInsert) {
+                    \$this->postInsert(\$con);";
+            $this->applyBehaviorModifier('postInsert', $script, "					    ");
+            $script .= "
+                } else {
+                    \$this->postUpdate(\$con);";
+            $this->applyBehaviorModifier('postUpdate', $script, "					    ");
+            $script .= "
+                }
+                \$this->postSave(\$con);";
+                $this->applyBehaviorModifier('postSave', $script, "				");
+                $script .= "
+                \$con->commit();
+                " . $this->getPeerClassname() . "::addInstanceToPool(\$this);
+            }";
+        } elseif (!$readOnly) {
+            // save without runtime hooks
+            $script .= "
+            if (\$this->isDeleted()) {
+                \$doSave = false;
+            } else {
+                \$doSave = true;";
+            $this->applyBehaviorModifier('preSave', $script, "			    ");
+            if ($this->hasBehaviorModifier('preUpdate')) {
+                $script .= "
+                if (!\$isInsert) {";
+                $this->applyBehaviorModifier('preUpdate', $script, "				    ");
+                $script .= "
+                }";
+            }
+            if ($this->hasBehaviorModifier('preInsert')) {
+                $script .= "
+                if (\$isInsert) {";
+                $this->applyBehaviorModifier('preInsert', $script, "				    ");
+                $script .= "
+                }";
+            }
+            $script .= "
+            }
+            \$affectedRows = \$this->doSaveWithRelated(\$con, \$doSave" . ($reloadOnUpdate || $reloadOnInsert ? ", \$skipReload" : "") . ");
+            if (\$this->isDeleted()) {
+                \$con->commit();
+            else {";
+            $this->applyBehaviorModifier('postSave', $script, "			    ");
+            if ($this->hasBehaviorModifier('postUpdate')) {
+                $script .= "
+                if (!\$isInsert) {";
+                $this->applyBehaviorModifier('postUpdate', $script, "				    ");
+                $script .= "
+                }";
+            }
+            if ($this->hasBehaviorModifier('postInsert')) {
+                $script .= "
+                if (\$isInsert) {";
+                $this->applyBehaviorModifier('postInsert', $script, "				    ");
+                $script .= "
+                }";
+            }
+            $script .= "
+                \$con->commit();
+                " . $this->getPeerClassname() . "::addInstanceToPool(\$this);
+            }";
+        } else {
+            // readonly object - save only related objects
+            $script .= "
+            \$affectedRows = \$this->doSaveWithRelated(\$con" . ($reloadOnUpdate || $reloadOnInsert ? ", \$skipReload" : "") . ");
+            \$con->commit();";
+        }
+
+        $script .= "
+
+            if (\$initial) {
+                foreach (\$this->_related as \$obj) {
+                    \$obj->_relatedAlreadyInSaveWithRelated = false;
+                    \$obj->alreadyInSaveWithRelated = false;
+                }
+                \$this->resetRelated();
+            }
+
+            return \$affectedRows;
+
+        } catch (Exception \$e) {
+            \$con->rollBack();
+            if (\$initial) {
+                foreach (\$this->_related as \$obj) {
+                    \$obj->_relatedAlreadyInSaveWithRelated = false;
+                    \$obj->alreadyInSaveWithRelated = false;
+                }
+            }
+            throw \$e;
+        }";
+    }
+
+    /**
+     * Adds the function close for the saveWithRelated method
+     *
+     * @param string &$script The script will be modified in this method.
+     *
+     * @see        addSave()
+     **/
+    protected function addSaveWithRelatedClose(&$script)
+    {
+        $script .= "
+    }
+";
+    }
+
+    /**
      * Adds the $alreadyInValidation attribute, which prevents attempting to re-validate the same object.
      *
      * @param string &$script The script will be modified in this method.
@@ -5543,6 +6082,8 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
      */
     public function ensureConsistency()
     {
+        \$changed = false;
+
 ";
         foreach ($table->getColumns() as $col) {
 
@@ -5558,12 +6099,17 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
                     $script .= "
         if (\$this->" . $varName . " !== null && \$this->$clo !== \$this->" . $varName . "->get" . $colFK->getPhpName() . "()) {
             \$this->$varName = null;
+            \$changed = true;
         }";
                 } // foreach
             } /* if col is foreign key */
         } // foreach
 
         $script .= "
+
+        if (\$changed) {
+            \$this->onChange();
+        }
     } // ensureConsistency
 ";
     } // addCheckRelConsistency
@@ -5755,9 +6301,7 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
         }
 
         $script .= "
-        \$this->alreadyInSave = false;
-        \$this->alreadyInValidation = false;
-        \$this->alreadyInClearAllReferencesDeep = false;
+        \$this->clearInternalProperties();
         \$this->clearAllReferences();";
 
         if ($this->hasDefaultValues()) {
@@ -5769,6 +6313,65 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
         \$this->resetModified();
         \$this->setNew(true);
         \$this->setDeleted(false);
+    }
+";
+    }
+
+    /**
+     * Adds clearInternalProperties method
+     *
+     * @param string &$script The script will be modified in this method.
+     */
+    protected function addClearInternalProperties(&$script)
+    {
+        $script .= "
+    /**
+     * Clears Propel internal properties private to each class instance,
+     * not related to data.
+     *
+     * This method is called after unserializing or cloning a object.
+     *
+     * By default this method ensures consistency:
+     * - \$objectHash is recalculated using spl_object_hash().
+     * - \$alreadyIn* properties (e.g. \$alreadyInSave) cannot be cleared.
+     * - Ensures consistency of other objects depending on the value of
+     *   cleared property.
+     *
+     * @param boolean \$ensureConsistency (optional) If FALSE, don't ensure
+     *                                              consistency, just clear
+     *                                              the properties
+     *
+     * @throws PropelException If property cannot be cleared.
+     */
+    public function clearInternalProperties(\$ensureConsistency = true)
+    {
+        if (\$ensureConsistency) {
+            \$newObjectHash = spl_object_hash(\$this);
+            if (\$this->objectHash === \$newObjectHash) {
+                \$internalProperties = array(
+                    'alreadyInSave',
+                    'alreadyInSaveWithRelated',
+                    'alreadyInValidation',
+                    'alreadyInClearAllReferencesDeep',
+                );
+                foreach (\$internalProperties as \$prop) {
+                    if (\$this->\$prop) {
+                        throw new PropelException('Cannot clear internal property ' . \$prop);
+                    }
+                }
+                \$this->resetRelated();
+            }
+            \$this->objectHash = \$newObjectHash;
+        } else {
+            \$this->objectHash = null;
+        }
+
+        \$this->_related = array();
+        \$this->isDirtyWithRelated = null;
+        \$this->alreadyInSave = false;
+        \$this->alreadyInSaveWithRelated = false;
+        \$this->alreadyInValidation = false;
+        \$this->alreadyInClearAllReferencesDeep = false;
     }
 ";
     }
@@ -5858,6 +6461,8 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
         }
 
         $script .= "
+
+        \$this->resetRelated();
     }
 ";
     }
@@ -5938,4 +6543,326 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
     }
 ";
     }
-} // PHP5ObjectBuilder
+
+    /**
+     * Adds the isIconsistent()
+     *
+     * @param string &$script The script will be modified in this method.
+     */
+    protected function addIsIncosistent(&$script)
+    {
+        $table = $this->getTable();
+
+        $exampleVarName = 'aBook';
+        $exapmleClo = 'book_id';
+        foreach ($table->getColumns() as $col) {
+            if ($col->isForeignKey()) {
+                $fkeys = $col->getForeignKeys();
+                $fk = reset($fkeys);
+                $exapmleClo = strtolower($col->getName());
+                $exampleVarName = $this->getFKVarName($fk);
+                break;
+            }
+        }
+        $script .= "
+    /**
+     * Returns whether the object is inconsistent.
+     *
+     * Returns true if having some foreign object (like \$$exampleVarName) which
+     * related local column (like \$$exapmleClo) is not set or does not match.
+     *
+     * This usually is the case when you assign a new foreign object.
+     *
+     * @return boolean True if object is inconsistent.
+     */
+    public function isInconsistent()
+    {";
+        foreach ($table->getColumns() as $col) {
+
+            $clo = strtolower($col->getName());
+
+            if ($col->isForeignKey()) {
+                foreach ($col->getForeignKeys() as $fk) {
+
+                    $tblFK = $table->getDatabase()->getTable($fk->getForeignTableName());
+                    $colFK = $tblFK->getColumn($fk->getMappedForeignColumn($col->getName()));
+                    $varName = $this->getFKVarName($fk);
+
+                    $script .= "
+        if (
+            \$this->" . $varName . " !== null
+            && (
+                \$this->$clo === null
+                || \$this->$clo !== \$this->" . $varName . "->get" . $colFK->getPhpName() . "()
+            )
+        ) {
+            return true;
+        }";
+                } // foreach
+            } /* if col is foreign key */
+        } // foreach
+
+        $script .= "
+
+        return false;
+    } // isIconsistent
+";
+    } // addIsInconsistent
+
+    /**
+     * Adds the isDirty()
+     *
+     * @param string &$script The script will be modified in this method.
+     */
+    protected function addIsDirty(&$script)
+    {
+        $script .= "
+    /**
+     * Returns true if the object is new, has been modified or is inconsistent
+     * with it's foreign key objects.
+     *
+     * @return boolean True if the object is dirty.
+     */
+    public function isDirty()
+    {
+        return\$this->isNew() || \$this->isModified() || \$this->isInconsistent();
+    }
+";
+    } // addisDirty
+
+    /**
+     * Adds the isDirtyWithRelated()
+     *
+     * @param string &$script The script will be modified in this method.
+     */
+    protected function addisDirtyWithRelated(&$script)
+    {
+        $table = $this->getTable();
+
+        $script .= "
+    /**
+     * Return whether the object or any related needs saving.
+     *
+     * Sets \$this->_related and \$this->isDirtyWithRelated properties.
+     *
+     * @return boolean True if object is inconsistent.
+     */
+    public function isDirtyWithRelated(array &\$related = array())
+    {
+        if (\$this->isDirtyWithRelated !== null) {
+            return \$this->isDirtyWithRelated;
+        }
+
+//        if (\$this->alreadyInSave || \$this->_deleted) {
+//            return false;
+//        }
+
+        \$this->isDirtyWithRelated = false; // FIXME is this needed?
+
+        \$initial = !\$related;
+        \$related[] = \$this;
+
+        //FIXME: avoid call to \$this->isDirty if it is known any related already needs to be saved
+        \$this->isDirtyWithRelated = \$this->isDirty();
+";
+        foreach ($table->getColumns() as $col) {
+
+            $clo = strtolower($col->getName());
+
+            if ($col->isForeignKey()) {
+                foreach ($col->getForeignKeys() as $fk) {
+
+                    $tblFK = $table->getDatabase()->getTable($fk->getForeignTableName());
+                    $colFK = $tblFK->getColumn($fk->getMappedForeignColumn($col->getName()));
+                    $aVarName = $this->getFKVarName($fk);
+
+                    $script .= "
+        if (
+            \$this->$aVarName !== null
+            && \$this->{$aVarName}->isDirtyWithRelated === null
+            && \$this->{$aVarName}->isDirtyWithRelated(\$related)
+        ) {
+            \$this->isDirtyWithRelated = true;
+        }
+";
+                } // foreach
+            } /* if col is foreign key */
+        } // foreach
+
+        if ($table->hasCrossForeignKeys()) {
+            foreach ($table->getCrossFks() as $fkList) {
+                list($refFK, $crossFK) = $fkList;
+                //$this->addCrossFkScheduledForDeletion($script, $refFK, $crossFK);
+                $relatedName = $this->getFKPhpNameAffix($crossFK, $plural = true);
+                $lowerSingleRelatedName = lcfirst($this->getFKPhpNameAffix($crossFK, $plural = false));
+                $lowerRelatedName = lcfirst($relatedName);
+                $script .= "
+        if (\$this->{$lowerRelatedName}ScheduledForDeletion !== null) {
+            if (!\$this->{$lowerRelatedName}ScheduledForDeletion->isEmpty()) {
+                \$this->isDirtyWithRelated = true;
+                //FIXME: add scheduled objects to \$related list
+            }
+            foreach (\$this->get{$relatedName}() as \${$lowerSingleRelatedName}) {
+                if (
+                    \${$lowerSingleRelatedName}->isDirtyWithRelated === null
+                    && \${$lowerSingleRelatedName}->isDirtyWithRelated(\$related)
+                ) {
+                    \$this->isDirtyWithRelated = true;
+                }
+            }
+        } elseif (\$this->coll{$relatedName}) {
+            foreach (\$this->coll{$relatedName} as \${$lowerSingleRelatedName}) {
+                if (
+                    \${$lowerSingleRelatedName}->isDirtyWithRelated === null
+                    && \${$lowerSingleRelatedName}->isDirtyWithRelated(\$related)
+                ) {
+                    \$this->isDirtyWithRelated = true;
+                }
+            }
+        }
+";
+            }
+        }
+
+        foreach ($table->getReferrers() as $refFK) {
+            if ($refFK->isLocalPrimaryKey()) {
+                $varName = $this->getPKRefFKVarName($refFK);
+                $script .= "
+        if (
+            \$this->$varName !== null
+            && \$this->{$varName}->isDirtyWithRelated === null
+            && \$this->{$varName}->isDirtyWithRelated(\$related)
+        ) {
+            \$this->isDirtyWithRelated = true;
+        }
+";
+            } else {
+                //$this->addRefFkScheduledForDeletion($script, $refFK);
+                $relatedName = $this->getRefFKPhpNameAffix($refFK, $plural = true);
+                $lowerRelatedName = lcfirst($relatedName);
+                $script .= "
+        if (\$this->{$lowerRelatedName}ScheduledForDeletion !== null
+            && !\$this->{$lowerRelatedName}ScheduledForDeletion->isEmpty()
+        ) {
+            \$this->isDirtyWithRelated = true;
+            //FIXME: add scheduled objects to \$related list
+        }
+";
+
+                $collName = $this->getRefFKCollVarName($refFK);
+                $script .= "
+        if (\$this->$collName !== null) {
+            foreach (\$this->$collName as \$referrerFK) {
+                if (
+                    \$referrerFK->isDirtyWithRelated === null
+                    && \$referrerFK->isDirtyWithRelated(\$related)
+                ) {
+                    \$this->isDirtyWithRelated = true;
+                }
+            }
+        }
+";
+            } // if refFK->isLocalPrimaryKey()
+        } /* foreach getReferrers() */
+
+        $script .= "
+
+        if (\$initial) {
+            foreach (\$related as \$r) {
+                \$r->_related =& \$related;
+                assert(\$this->isDirtyWithRelated || !\$r->isDirtyWithRelated);
+                \$r->isDirtyWithRelated = \$this->isDirtyWithRelated;
+            }
+        }
+
+        return \$this->isDirtyWithRelated;
+    } // isDirtyWithRelated
+";
+    } // addHasNewForeignAttribute
+
+
+    /**
+     * Adds the $_related properties
+     *
+     * @param string &$script The script will be modified in this method.
+     */
+    protected function addRelatedProperties(&$script)
+    {
+        $script .= "
+    /**
+     * @var array
+     */
+    public \$_related = array();
+
+    /**
+     * @var boolean
+     */
+    public \$_relatedAlreadyInSaveWithRelated = false;
+
+    /**
+     * @var boolean|null
+     */
+    public \$isDirtyWithRelated = null;
+
+    /**
+     * @var boolean
+     */
+    public \$alreadyInSaveWithRelated = false;
+";
+    }
+
+    /**
+     * Adds the resetRelated()
+     *
+     * @param string &$script The script will be modified in this method.
+     *
+     * @see   addRelatedProperties()
+     * @see   addisDirtyWithRelated()
+     * @see   addSaveWithRelated()
+     */
+    protected function addResetRelated(&$script)
+    {
+        $script .= "
+    /**
+     * Clears array of related objects.
+     */
+    protected function resetRelated()
+    {
+        assert(!\$this->alreadyInSaveWithRelated);
+
+        \$related = &\$this->_related;
+
+        foreach (\$related as \$obj) {
+            unset(\$obj->_related);
+            \$obj->_related = array();
+            \$obj->isDirtyWithRelated = null;
+        }
+
+    }
+";
+    }
+
+    /**
+     * Adds the onChange()
+     *
+     * @param string &$script The script will be modified in this method.
+     */
+    protected function addOnChange(&$script)
+    {
+        $script .= "
+    /**
+     * Method called on each object change.
+     */
+    protected function onChange() {
+        parent::onChange();
+
+        if (!\$this->alreadyInSave && !\$this->alreadyInSaveWithRelated) {
+          \$this->resetRelated();
+        }
+    }
+";
+    }
+
+}
+
+// PHP5ObjectBuilder

@@ -9,6 +9,7 @@
  */
 
 require_once dirname(__FILE__) . '/../../../../tools/helpers/bookstore/BookstoreTestBase.php';
+require_once dirname(__FILE__) . '/../../../../tools/helpers/bookstore/BookstoreCountableClasses.php';
 require_once dirname(__FILE__) . '/../../../../../generator/lib/util/PropelQuickBuilder.php';
 
 /**
@@ -607,6 +608,64 @@ class GeneratedObjectTest extends BookstoreTestBase
 
         $a->setAge(0);
         $this->assertTrue($a->isModified(), "Expected Author to be modified after changing NULL column to 0-value int.");
+    }
+
+    /**
+     * @link https://github.com/propelorm/Propel/issues/934
+     *
+     * @covers PHP5ObjectBuilder::addNeedsSaving
+     * @covers PHP5ObjectBuilder::addIsInconsitent
+     */
+    public function testIsInconsistentAfterSettingNewForeignObject()
+    {
+        $book = new Book();
+        $this->assertFalse($book->isModified(), "New book is not modified");
+        $this->assertFalse($book->isInconsistent(), "New book must not be inconsistent");
+        $this->assertTrue($book->isDirty(), "New book needs saving");
+
+        $author = new Author();
+        // associate the $book object with the current $author
+        $author->addBook($book);
+        $this->assertFalse($book->isModified(), "Book is modified after new author is set");
+        $this->assertTrue($book->isInconsistent(), "Book is inconsistent after new author is set");
+        $this->assertTrue($book->isDirty(), "Book needs saving after new author is set");
+    }
+
+    /**
+     * @link https://github.com/propelorm/Propel/issues/934
+     *
+     * @covers BaseObject::isModified
+     * @covers PHP5ObjectBuilder::addHasNewForeignAttribute
+     */
+    public function testIsSavedTogetherWhithNewForeignAttribute()
+    {
+        // Example from http://propelorm.org/Propel/documentation/04-relationships.html
+        // Taken on 11th December 2014
+        $book = new Book();
+        $book->setTitle("War & Peace");
+        $book->save();
+
+        $this->assertNotNull($book->getId(), "Book id must not be null after saving");
+        $this->assertNull($book->getAuthorId(), "Book author id should be null at this point");
+        $this->assertFalse($book->isModified(), "Book must not be modified after saving");
+        $this->assertFalse($book->isDirty(), "Book does not need saving after it was saved");
+        $this->assertFalse($book->isDirtyWithRelated(), "Book does not need saving after it was saved");
+
+        $author = new Author();
+        $author->setFirstName("Leo");
+        $author->setLastName("Tolstoy");
+        // associate the $book object with the current $author
+        $author->addBook($book);
+        $this->assertFalse($book->isModified(), "Book must not be modified after new author is set");
+        $this->assertTrue($book->isDirty(), "Book needs saving after new author is set");
+
+        $author->save();
+        $this->assertNotNull($author->getId(), "Author id must not be null after saving");
+        $this->assertFalse($book->isModified(), "Book must be saved together with author");
+        $this->assertFalse($book->isDirty(), "Book must be saved together with author");
+        $this->assertNotNull($book->getAuthorId(), "Book author id should not be null after adding the book to author");
+        $this->assertEquals($author->getId(), $book->getAuthorId(), "Book author id should match with the author id that the book was added to");
+        $this->assertFalse($author->isDirty(), "Author does not need saving after it is saved");
     }
 
     /**
@@ -1714,20 +1773,5 @@ EOF;
         $object->save();
 
         $this->fail('Should not be called');
-    }
-}
-
-class CountableAuthor extends Author
-{
-    public $nbCallPreSave = 0;
-
-    /**
-     * {@inheritdoc}
-     */
-    public function preSave(PropelPDO $con = null)
-    {
-        $this->nbCallPreSave++;
-
-        return parent::preSave($con);
     }
 }

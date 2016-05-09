@@ -1681,9 +1681,11 @@ class ModelCriteriaTest extends BookstoreTestBase
         // retrieve the test data
         $c = new ModelCriteria('bookstore', 'Book');
         $testBook = $c->findOne();
+        $testBook->objectHash = null;
 
         $c = new ModelCriteria('bookstore', 'Book');
         $book = $c->findPk($testBook->getId());
+        $book->objectHash = null;
         $this->assertEquals($testBook, $book, 'findPk() returns a model object corresponding to the pk');
     }
 
@@ -1703,10 +1705,15 @@ class ModelCriteriaTest extends BookstoreTestBase
         $testBooks = $c->find();
         $testBook1 = $testBooks->pop();
         $testBook2 = $testBooks->pop();
+        $testBook1->objectHash = null;
+        $testBook2->objectHash = null;
 
         $c = new ModelCriteria('bookstore', 'Book');
         $books = $c->findPks(array($testBook1->getId(), $testBook2->getId()));
-        $this->assertEquals(array($testBook2, $testBook1), $books->getData(), 'findPks() returns an array of model objects corresponding to the pks');
+        $booksArray = $books->getData();
+        $booksArray[0]->objectHash = null;
+        $booksArray[1]->objectHash = null;
+        $this->assertEquals(array($testBook2, $testBook1), $booksArray, 'findPks() returns an array of model objects corresponding to the pks');
     }
 
     public function testFindPkCompositeKey()

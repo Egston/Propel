@@ -87,9 +87,13 @@ EOF;
         $coll = new PropelObjectCollection();
         $coll->setModel('Book');
         $coll->fromXML($expected);
-        // fix modified columns order
+        // fix modified columns order and unset generated objectHash
         foreach ($coll as $book) {
+            $book->objectHash = null;
             $book->resetModified();
+        }
+        foreach ($this->coll as $book) {
+            $book->objectHash = null;
         }
 
         $this->assertEquals($this->coll, $coll);
@@ -134,9 +138,13 @@ EOF;
         $coll = new PropelObjectCollection();
         $coll->setModel('Book');
         $coll->fromYAML($expected);
-        // fix modified columns order
+        // fix modified columns order and unset generated objectHash
         foreach ($coll as $book) {
+            $book->objectHash = null;
             $book->resetModified();
+        }
+        foreach ($this->coll as $book) {
+            $book->objectHash = null;
         }
 
         $this->assertEquals($this->coll, $coll);
@@ -167,9 +175,13 @@ EOF;
         $coll = new PropelObjectCollection();
         $coll->setModel('Book');
         $coll->fromJSON($expected);
-        // fix modified columns order
+        // fix modified columns order and unset generated objectHash
         foreach ($coll as $book) {
+            $book->objectHash = null;
             $book->resetModified();
+        }
+        foreach ($this->coll as $book) {
+            $book->objectHash = null;
         }
 
         $this->assertEquals($this->coll, $coll);
@@ -198,9 +210,13 @@ EOF;
         $coll = new PropelObjectCollection();
         $coll->setModel('Book');
         $coll->fromCSV($expected);
-        // fix modified columns order
+        // fix modified columns order and unset generated objectHash
         foreach ($coll as $book) {
+            $book->objectHash = null;
             $book->resetModified();
+        }
+        foreach ($this->coll as $book) {
+            $book->objectHash = null;
         }
 
         $this->assertEquals($this->coll, $coll);

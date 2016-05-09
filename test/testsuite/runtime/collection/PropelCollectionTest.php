@@ -69,6 +69,11 @@ class PropelCollectionTest extends BookstoreTestBase
         $cloneCount = $clone->getIterator()->count();
         $this->assertEquals($orgCount, $cloneCount, 'cloned collections have the same size');
 
+        $b->clearInternalProperties(false);
+        $b1->clearInternalProperties(false);
+        $clone[0]->clearInternalProperties(false);
+        $clone[1]->clearInternalProperties(false);
+
         $this->assertEquals($b, $clone[0], 'cloned objects are equal');
         $this->assertEquals($b1, $clone[1], 'cloned objects are equal');
 

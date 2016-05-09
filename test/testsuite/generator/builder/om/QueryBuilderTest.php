@@ -145,6 +145,8 @@ class QueryBuilderTest extends BookstoreTestBase
         BookPeer::clearInstancePool();
 
         $book = BookQuery::create()->findPk($b->getId(), $this->con);
+        $b->objectHash = null;
+        $book->objectHash = null;
         $this->assertEquals($b, $book);
         $this->assertEquals($count+1, $this->con->getQueryCount(), 'findPk() issues a database query when instance is not in pool');
     }
@@ -205,6 +207,8 @@ class QueryBuilderTest extends BookstoreTestBase
         $count = $this->con->getQueryCount();
 
         $book = BookQuery::create()->findPk($b->getId(), $this->con);
+        $b->objectHash = null;
+        $book->objectHash = null;
         $this->assertEquals($b, $book);
         $this->assertEquals($count, $this->con->getQueryCount());
     }
@@ -221,6 +225,8 @@ class QueryBuilderTest extends BookstoreTestBase
         $count = $this->con->getQueryCount();
 
         $book = BookQuery::create()->findOneById($b->getId(), $this->con);
+        $b->objectHash = null;
+        $book->objectHash = null;
         $this->assertEquals($b, $book);
         $this->assertEquals($count, $this->con->getQueryCount());
     }
@@ -244,6 +250,8 @@ class QueryBuilderTest extends BookstoreTestBase
         $count = $this->con->getQueryCount();
 
         $book = BookQuery::create()->findPk($b->getId(), $this->con);
+        $b->objectHash = null;
+        $book->objectHash = null;
         $this->assertEquals($b, $book);
         $this->assertEquals($count, $this->con->getQueryCount());
     }

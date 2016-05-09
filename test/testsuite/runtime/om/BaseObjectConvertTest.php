@@ -91,6 +91,7 @@ EOF;
         $book->fromXML($expected);
         // FIXME: fromArray() doesn't take related objects into account
         $book->resetModified();
+        $book->objectHash = null;
         $author = $this->book->getAuthor();
         $this->book->setAuthor(null);
         $this->book->setAuthorId($author->getId());
@@ -98,6 +99,7 @@ EOF;
         $this->book->setPublisher(null);
         $this->book->setPublisherId($publisher->getId());
         $this->book->resetModified();
+        $this->book->objectHash = null;
 
         $this->assertEquals($this->book, $book);
     }
@@ -147,6 +149,7 @@ EOF;
         $book->fromYAML($expected);
         // FIXME: fromArray() doesn't take related objects into account
         $book->resetModified();
+        $book->objectHash = null;
         $author = $this->book->getAuthor();
         $this->book->setAuthor(null);
         $this->book->setAuthorId($author->getId());
@@ -154,6 +157,7 @@ EOF;
         $this->book->setPublisher(null);
         $this->book->setPublisherId($publisher->getId());
         $this->book->resetModified();
+        $this->book->objectHash = null;
 
         $this->assertEquals($this->book, $book);
     }
@@ -184,6 +188,7 @@ EOF;
         $book->fromJSON($expected);
         // FIXME: fromArray() doesn't take related objects into account
         $book->resetModified();
+        $book->objectHash = null;
         $author = $this->book->getAuthor();
         $this->book->setAuthor(null);
         $this->book->setAuthorId($author->getId());
@@ -191,6 +196,7 @@ EOF;
         $this->book->setPublisher(null);
         $this->book->setPublisherId($publisher->getId());
         $this->book->resetModified();
+        $this->book->objectHash = null;
 
         $this->assertEquals($this->book, $book);
     }
@@ -219,6 +225,7 @@ EOF;
         $book->fromCSV($expected);
         // FIXME: fromArray() doesn't take related objects into account
         $book->resetModified();
+        $book->objectHash = null;
         $author = $this->book->getAuthor();
         $this->book->setAuthor(null);
         $this->book->setAuthorId($author->getId());
@@ -226,6 +233,7 @@ EOF;
         $this->book->setPublisher(null);
         $this->book->setPublisherId($publisher->getId());
         $this->book->resetModified();
+        $this->book->objectHash = null;
 
         $this->assertEquals($this->book, $book);
     }
