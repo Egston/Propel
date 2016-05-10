@@ -5753,12 +5753,14 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
         $script .= "
         static \$try = 0;
         static \$affectedRows = 0;
+        static \$dirtyTrace = array();
         \$maxTries = 10;
 
         \$initial = !\$this->_relatedAlreadyInSaveWithRelated;
 
         if (\$initial && \$try === 0) {
             \$affectedRows = 0;
+            \$dirtyTrace = array();
         }
 
         if (\$this->alreadyInSaveWithRelated || \$this->isDirtyWithRelated === false) {
@@ -5779,7 +5781,9 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
             if (\$try > \$maxTries) {
                 // give up
                 \$try = 0;
-                throw new PropelException(\"Could not save all objects in {\$maxTries} tries.\");
+                \$dirtyTraceExported = print_r(\$dirtyTrace, true);
+                \$dirtyTrace = array();
+                throw new PropelException(\"Could not save all objects in {\$maxTries} tries.\\n\" . \$dirtyTraceExported);
             }
             foreach (\$this->_related as \$obj) {
                 \$obj->_relatedAlreadyInSaveWithRelated = true;
@@ -5913,10 +5917,25 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
             // FIXME: handle new related objects added during save
             assert(in_array(\$this, \$this->_related, true));
             \$this->resetRelated();
+
             if (\$this->isDirtyWithRelated()) {
+                \$modifiedList = array();
+                \$dirtyList = array();
+                foreach (\$this->_related as \$obj) {
+                    if (\$obj->isModified()) {
+                        \$modifiedList[] = get_class(\$obj) . ': ' . implode(', ', \$obj->getModifiedColumns());
+                    } elseif (\$obj->isDirty()) {
+                        \$dirtyList[] = get_class(\$obj);
+                    }
+                }
+                \$dirtyTrace[] = array(
+                    'modified' => \$modifiedList,
+                    'dirty' => \$dirtyList
+                );
                 \$this->saveWithRelated(); //fixme - add params
             } else {
                 \$try = 0;
+                \$dirtyTrace = array(); // cleanup
             }
         }
 
