@@ -10,6 +10,8 @@
 
 require_once dirname(__FILE__) . '/../../../../tools/helpers/bookstore/BookstoreEmptyTestBase.php';
 require_once dirname(__FILE__) . '/../../../../tools/helpers/bookstore/BookstoreCountableClasses.php';
+require_once dirname(__FILE__) . '/../../../../tools/helpers/bookstore/EventsAwareBook.php';
+require_once dirname(__FILE__) . '/../../../../tools/helpers/bookstore/EventsAwareBookSummary.php';
 
 /**
  * Tests relationships between generated Object classes.
@@ -86,24 +88,24 @@ class GeneratedObjectSaveWithRelatedTest extends BookstoreEmptyTestBase
         $firstBook->getBookSummarys()->getLast()->saveWithRelated();
 //        $this->describeAuthorRelated($author);
         $this->assertEquals(0, Count::get('CountableAuthor', 'isDirtyWithRelated_Initial'));
-        $this->assertEquals(0, Count::get('CountableAuthor', 'isDirtyWithRelated_Recursive'));
+        $this->assertEquals(1, Count::get('CountableAuthor', 'isDirtyWithRelated_Recursive'));
         $this->assertEquals(0, Count::get('CountableBook', 'isDirtyWithRelated_Initial'));
-        $this->assertEquals(0, Count::get('CountableBook', 'isDirtyWithRelated_Recursive'));
-        $this->assertEquals(1, Count::get('CountableBookSummary', 'isDirtyWithRelated_Initial'));
-        $this->assertEquals(0, Count::get('CountableBookSummary', 'isDirtyWithRelated_Recursive'));
+        $this->assertEquals(5, Count::get('CountableBook', 'isDirtyWithRelated_Recursive'));
+        $this->assertEquals(2, Count::get('CountableBookSummary', 'isDirtyWithRelated_Initial'));
+        $this->assertEquals(24, Count::get('CountableBookSummary', 'isDirtyWithRelated_Recursive'));
 
         // Check count of isDirtyWithRelated() calls when no object in chain is modified
         Count::reset();
         $this->assertFalse(($author->isDirtyWithRelated()));
         $this->assertEquals(1, Count::get('CountableAuthor', 'isDirtyWithRelated_Initial'));
         $this->assertEquals(0, Count::get('CountableAuthor', 'isDirtyWithRelated_Recursive'));
-        $this->assertEquals(1, Count::get('CountableAuthor', 'isDirty'));
+        $this->assertEquals(0, Count::get('CountableAuthor', 'isDirty'));
         $this->assertEquals(0, Count::get('CountableBook', 'isDirtyWithRelated_Initial'));
-        $this->assertEquals(5, Count::get('CountableBook', 'isDirtyWithRelated_Recursive'));
-        $this->assertEquals(5, Count::get('CountableBook', 'isDirty'));
+        $this->assertEquals(0, Count::get('CountableBook', 'isDirtyWithRelated_Recursive'));
+        $this->assertEquals(0, Count::get('CountableBook', 'isDirty'));
         $this->assertEquals(0, Count::get('CountableBookSummary', 'isDirtyWithRelated_Initial'));
-        $this->assertEquals(25, Count::get('CountableBookSummary', 'isDirtyWithRelated_Recursive'));
-        $this->assertEquals(25, Count::get('CountableBookSummary', 'isDirty'));
+        $this->assertEquals(0, Count::get('CountableBookSummary', 'isDirtyWithRelated_Recursive'));
+        $this->assertEquals(0, Count::get('CountableBookSummary', 'isDirty'));
 
         Count::reset();
         $this->assertFalse(($firstBook->isDirtyWithRelated()));
@@ -134,7 +136,7 @@ class GeneratedObjectSaveWithRelatedTest extends BookstoreEmptyTestBase
 
         $lastBook->addBookSummary($additionalSummary);
         $additionalSummary->setSummary("book 4 / summary 5");
-        
+
         $this->assertEquals(0, count($firstBook->_related));
         $this->assertNull($firstBook->isDirtyWithRelated);
         $this->assertEquals(0, count($lastBook->_related));
@@ -192,11 +194,11 @@ class GeneratedObjectSaveWithRelatedTest extends BookstoreEmptyTestBase
         Count::reset();
         $additionalSummary->saveWithRelated();
         $this->assertEquals(0, Count::get('CountableAuthor', 'isDirtyWithRelated_Initial'));
-        $this->assertEquals(0, Count::get('CountableAuthor', 'isDirtyWithRelated_Recursive'));
+        $this->assertEquals(1, Count::get('CountableAuthor', 'isDirtyWithRelated_Recursive'));
         $this->assertEquals(0, Count::get('CountableBook', 'isDirtyWithRelated_Initial'));
-        $this->assertEquals(0, Count::get('CountableBook', 'isDirtyWithRelated_Recursive'));
-        $this->assertEquals(1, Count::get('CountableBookSummary', 'isDirtyWithRelated_Initial'));
-        $this->assertEquals(0, Count::get('CountableBookSummary', 'isDirtyWithRelated_Recursive'));
+        $this->assertEquals(5, Count::get('CountableBook', 'isDirtyWithRelated_Recursive'));
+        $this->assertEquals(2, Count::get('CountableBookSummary', 'isDirtyWithRelated_Initial'));
+        $this->assertEquals(25, Count::get('CountableBookSummary', 'isDirtyWithRelated_Recursive'));
 
         $this->assertFalse(($author->isModified()));
         $this->assertFalse(($additionalSummary->isModified()));
@@ -251,6 +253,167 @@ class GeneratedObjectSaveWithRelatedTest extends BookstoreEmptyTestBase
         $this->assertFalse($additionalSummary->alreadyInSaveWithRelated);
 
         Count::reset();
+    }
+
+    /**
+     * Tests circular dependency
+     *
+     * @covers PHP5ObjectBuilder::addIsDirtyWithRelated
+     * @covers PHP5ObjectBuilder::addSaveWithRelated
+     */
+    public function testSaveWithRelatedCircularDependency()
+    {
+        $book = new EventsAwareBook();
+
+        // test circular dependency
+
+        $summary = new EventsAwareBookSummary();
+        $summary->setSummary('official summary');
+        $e = new BookOfficialSummaryEvent();
+        $e->setNewOfficialSummary($summary);
+        $book->addBookOfficialSummaryEvent($e);
+
+        $this->assertTrue($e->isDirtyWithRelated());
+        $this->assertCount(3, $e->_related);
+
+        $e->saveWithRelated();
+
+        $this->assertSame($book->getOfficialSummary(), $summary);
+
+        $this->assertFalse($book->isModified());
+        $this->assertFalse($e->isModified());
+        $this->assertFalse($summary->isModified());
+        $this->assertFalse($book->isDirtyWithRelated());
+    }
+
+    /**
+     * Tests circular dependency
+     *
+     * @covers PHP5ObjectBuilder::addIsDirtyWithRelated
+     * @covers PHP5ObjectBuilder::addSaveWithRelated
+     */
+    public function testSaveWithRelatedCircular2()
+    {
+        $book = new EventsAwareBook();
+
+        $summary1 = new EventsAwareBookSummary();
+        $summary1->setSummary('official summary');
+        $e1 = new BookOfficialSummaryEvent();
+        $e1->setNewOfficialSummary($summary1);
+        $book->addBookOfficialSummaryEvent($e1);
+        $this->assertSame($book->getOfficialSummary(), $summary1);
+
+        $this->assertTrue($e1->isDirtyWithRelated());
+        $this->assertCount(3, $e1->_related);
+
+        $summary2 = new EventsAwareBookSummary();
+        $summary2->setSummary('new official summary');
+        $e2 = new BookOfficialSummaryEvent();
+        $e2->setNewOfficialSummary($summary2);
+        $book->addBookOfficialSummaryEvent($e2);
+        $this->assertSame($book->getOfficialSummary(), $summary2);
+
+        $this->assertTrue($e2->isDirtyWithRelated());
+        $this->assertCount(5, $e2->_related);
+
+        $e2->saveWithRelated();
+
+        $this->assertSame($book->getOfficialSummary(), $summary2);
+
+        $this->assertFalse($book->isModified());
+        $this->assertFalse($e1->isModified());
+        $this->assertFalse($summary1->isModified());
+        $this->assertFalse($e2->isModified());
+        $this->assertFalse($summary2->isModified());
+        $this->assertFalse($book->isDirtyWithRelated());
+    }
+
+    /**
+     * Tests circular dependency
+     *
+     * @covers PHP5ObjectBuilder::addIsDirtyWithRelated
+     * @covers PHP5ObjectBuilder::addSaveWithRelated
+     */
+    public function testSaveWithRelatedCircular3()
+    {
+        $book = new EventsAwareBook();
+
+        $summary1 = new EventsAwareBookSummary();
+        $summary1->setSummary('official summary');
+        $e1 = new BookOfficialSummaryEvent();
+        $e1->setNewOfficialSummary($summary1);
+        $book->addBookOfficialSummaryEvent($e1);
+        $this->assertSame($book->getOfficialSummary(), $summary1);
+
+        $this->assertTrue($e1->isDirtyWithRelated());
+        $this->assertCount(3, $e1->_related);
+
+        $summary2 = new EventsAwareBookSummary();
+        $summary2->setSummary('new official summary');
+        $e2 = new BookOfficialSummaryEvent();
+        $e2->setNewOfficialSummary($summary2);
+        $book->addBookOfficialSummaryEvent($e2);
+        $this->assertSame($book->getOfficialSummary(), $summary2);
+
+        $this->assertTrue($e2->isDirtyWithRelated());
+        $this->assertCount(5, $e2->_related);
+
+        $e1->saveWithRelated();
+
+        $this->assertSame($book->getOfficialSummary(), $summary2);
+
+        $this->assertFalse($book->isModified());
+        $this->assertFalse($e1->isModified());
+        $this->assertFalse($summary1->isModified());
+        $this->assertFalse($e2->isModified());
+        $this->assertFalse($summary2->isModified());
+        $this->assertFalse($book->isDirtyWithRelated());
+    }
+
+    /**
+     * Tests circular dependency
+     *
+     * @covers PHP5ObjectBuilder::addIsDirtyWithRelated
+     * @covers PHP5ObjectBuilder::addSaveWithRelated
+     */
+    public function testSaveWithRelatedCircular4()
+    {
+        $book = new EventsAwareBook();
+
+        $summary1 = new EventsAwareBookSummary();
+        $summary1->setSummary('official summary');
+        $e1 = new BookOfficialSummaryEvent();
+        $e1->setEventsAwareBook($book);
+        $e1->setNewOfficialSummary($summary1);
+        $this->assertSame($book->getOfficialSummary(), $summary1);
+
+        $this->assertTrue($e1->isDirtyWithRelated());
+        $this->assertCount(3, $e1->_related);
+
+        $summary2 = new EventsAwareBookSummary();
+        $summary2->setSummary('new official summary');
+        $e2 = new BookOfficialSummaryEvent();
+        $e2->setEventsAwareBook($book);
+        $e2->setNewOfficialSummary($summary2);
+        $this->assertSame($book->getOfficialSummary(), $summary2);
+
+        $this->assertTrue($e2->isDirtyWithRelated());
+        $this->assertCount(5, $e2->_related);
+
+        $e1->saveWithRelated();
+
+        $this->assertSame($book->getOfficialSummary(), $summary2);
+
+        $this->assertFalse($book->isModified());
+        $this->assertFalse($e1->isModified());
+        $this->assertFalse($summary1->isModified());
+        $this->assertFalse($e2->isModified());
+        $this->assertFalse($summary2->isModified());
+        $this->assertFalse($book->isDirtyWithRelated());
+
+        $book->reload(true);
+        $this->assertEquals('new official summary', $book->getOfficialSummary()->getSummary());
+        $this->assertEquals(2, $book->countBookSummarys());
     }
 
     /**
@@ -313,14 +476,14 @@ class GeneratedObjectSaveWithRelatedTest extends BookstoreEmptyTestBase
         $this->assertFalse($club2->isDirty());
 
         // check number of calls issued from save()
-        $this->assertEquals(1, Count::get('CountableAuthor', 'isDirtyWithRelated_Initial'));
+        $this->assertEquals(2, Count::get('CountableAuthor', 'isDirtyWithRelated_Initial'));
         $this->assertEquals(0, Count::get('CountableAuthor', 'isDirtyWithRelated_Recursive'));
         $this->assertEquals(0, Count::get('CountableBookClubList', 'isDirtyWithRelated_Initial'));
-        $this->assertEquals(2, Count::get('CountableBookClubList', 'isDirtyWithRelated_Recursive'));
+        $this->assertEquals(4, Count::get('CountableBookClubList', 'isDirtyWithRelated_Recursive'));
         $this->assertEquals(0, Count::get('CountableBook', 'isDirtyWithRelated_Initial'));
-        $this->assertEquals(5, Count::get('CountableBook', 'isDirtyWithRelated_Recursive'));
+        $this->assertEquals(10, Count::get('CountableBook', 'isDirtyWithRelated_Recursive'));
         $this->assertEquals(0, Count::get('CountableBookSummary', 'isDirtyWithRelated_Initial'));
-        $this->assertEquals(25, Count::get('CountableBookSummary', 'isDirtyWithRelated_Recursive'));
+        $this->assertEquals(50, Count::get('CountableBookSummary', 'isDirtyWithRelated_Recursive'));
 
         if ($printTraces) {
             $this->setupDescFuncs();

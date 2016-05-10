@@ -371,7 +371,9 @@ abstract class BaseObject
 
     /**
      * If the primary key is not null, return the hashcode of the
-     * primary key. Otherwise, return the hash code of the object.
+     * primary key. Otherwise, return the hash code of the shallow copy
+     * of the object with cleared all references. Therefore new objects which
+     * differ only in referenced objects will have same hashcode.
      *
      * @return int Hashcode
      */

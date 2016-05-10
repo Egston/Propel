@@ -270,31 +270,73 @@ class PropelObjectCollection extends PropelCollection
     }
 
     /**
-     * {@inheritdoc}
+     * Search an element in the collection.
+     *
+     * By default, objects not having primary key and which differ only in their
+     * references to other objects, are considered equals. You may want to pass
+     * parameter $strict set to TRUE to compare such objects by identity,
+     * i.e. by hash code as returned by spl_object_hash().
+     *
+     * @param mixed   $element
+     * @param boolean $strict  If TRUE, compare objects without a primary key
+     *                         with hash code as returned by spl_object_hash()
+     *
+     * @return mixed Returns the key for the element if it is found in the
+     *               collection, FALSE otherwise
      */
-    public function search($element)
+    public function search($element, $strict = false)
     {
-        if ($element instanceof BaseObject) {
-            if (null !== $elt = $this->getIdenticalObject($element)) {
-                $element = $elt;
+        if ($strict && $element instanceof BaseObject && $element->getPrimaryKey() === null) {
+            $key = false;
+            foreach ($this as $k => $item) {
+                if ($element->objectHash === $item->objectHash) {
+                    $key = $k;
+                    break;
+                }
             }
+        } elseif ($element instanceof BaseObject) {
+            $elt = $this->getIdenticalObject($element);
+            $key = parent::search($elt !== null ? $elt : $element);
+        } else {
+            $key = parent::search($element);
         }
 
-        return parent::search($element);
+        return $key;
     }
 
     /**
-     * {@inheritdoc}
+     * Whether or not this collection contains a specified element.
+     *
+     * By default, objects not having primary key and which differ only in their
+     * references to other objects, are considered equals. You may want to pass
+     * parameter $strict set to TRUE to compare such objects by identity,
+     * i.e. by hash code as returned by spl_object_hash().
+     *
+     * @param mixed   $element
+     * @param boolean $strict  If TRUE, compare objects without a primary key
+     *                         with hash code as returned by spl_object_hash()
+     *
+     * @return boolean
      */
-    public function contains($element)
+    public function contains($element, $strict = false)
     {
-        if ($element instanceof BaseObject) {
-            if (null !== $elt = $this->getIdenticalObject($element)) {
-                $element = $elt;
+
+        if ($strict && $element instanceof BaseObject && $element->getPrimaryKey() === null) {
+            $found = false;
+            foreach ($this as $item) {
+                if ($element->objectHash === $item->objectHash) {
+                    $found = true;
+                    break;
+                }
             }
+        } elseif ($element instanceof BaseObject) {
+            $elt = $this->getIdenticalObject($element);
+            $found = parent::contains($elt !== null ? $elt : $element);
+        } else {
+            $found = parent::contains($element);
         }
 
-        return parent::contains($element);
+        return $found;
     }
 
     private function getIdenticalObject(BaseObject $object)

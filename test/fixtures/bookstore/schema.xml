@@ -403,5 +403,32 @@
 		</foreign-key>
 	</table>
 
+	<table name="events_aware_book" description="Book Table">
+		<column name="id" required="true" primaryKey="true" autoIncrement="true" type="INTEGER" description="Book Id" />
+		<column name="official_summary_id" required="false" type="INTEGER" description="Official summary of the book." />
+		<foreign-key foreignTable="events_aware_book_summary" onDelete="setnull" onUpdate="cascade" phpName="OfficialSummary" refPhpName="OfficialForBook">
+			<reference local="official_summary_id" foreign="id" />
+		</foreign-key>
+	</table>
 
+	<table name="book_official_summary_event">
+		<column name="id" required="true" primaryKey="true" autoIncrement="true" type="INTEGER" />
+		<column name="book_id" required="true" type="INTEGER" />
+		<column name="new_official_summary_id" required="true" type="INTEGER" description="New official summary of the book." />
+		<foreign-key foreignTable="events_aware_book" onDelete="cascade" onUpdate="cascade">
+			<reference local="book_id" foreign="id" />
+		</foreign-key>
+		<foreign-key foreignTable="events_aware_book_summary" onDelete="cascade" onUpdate="cascade" phpName="NewOfficialSummary">
+			<reference local="new_official_summary_id" foreign="id" />
+		</foreign-key>
+	</table>
+
+	<table name="events_aware_book_summary">
+		<column name="id" required="true" primaryKey="true" autoIncrement="true" type="INTEGER" />
+		<column name="book_id" required="true" type="INTEGER" />
+		<column name="summary" required="true" type="LONGVARCHAR" />
+		<foreign-key phpName="SummarizedBook" refPhpName="BookSummary" foreignTable="events_aware_book" onDelete="cascade">
+			<reference local="book_id" foreign="id" />
+		</foreign-key>
+	</table>
 </database>

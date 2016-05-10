@@ -305,7 +305,7 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
 
         $this->addIsIncosistent($script);
         $this->addIsDirty($script);
-        $this->addisDirtyWithRelated($script);
+        $this->addIsDirtyWithRelated($script);
         $this->addResetRelated($script);
 
         $this->addOnChange($script);
@@ -5040,10 +5040,23 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
 
             foreach ($table->getForeignKeys() as $fk) {
                 $aVarName = $this->getFKVarName($fk);
+                $fkLocalColIsNotNull = $fk->getLocalColumn()->isNotNull();
+                $fkColPhpName = $fk->getForeignColumn()->getPhpName();
                 $script .= "
         if (\$this->$aVarName !== null) {
             \$affectedRows += \$this->" . $aVarName . "->saveWithRelated(\$con);
-            \$this->set" . $this->getFKPhpNameAffix($fk, $plural = false) . "(\$this->$aVarName);
+            \$this->set" . $this->getFKPhpNameAffix($fk, $plural = false) . "(\$this->$aVarName);";
+            if ($fkLocalColIsNotNull) {
+                $script .= "
+            // Return, if the required FK is null (probably circular dependency);
+            // give the foreign object chance to save and let's wait for next
+            // retry issued from saveWithRelated()
+            if (\$this->{$aVarName}->get{$fkColPhpName}() === null) {
+                return \$affectedRows;
+            }
+            ";
+            }
+            $script .= "
         }
 ";
             } // foreach foreign k
@@ -5738,22 +5751,43 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
         $reloadOnInsert = !$readOnly && $table->isReloadOnInsert();
 
         $script .= "
-        if (\$this->alreadyInSaveWithRelated || \$this->isDirtyWithRelated === false) {
-            return 0;
-        }
-        \$this->alreadyInSaveWithRelated = true;
+        static \$try = 0;
+        static \$affectedRows = 0;
+        \$maxTries = 10;
 
         \$initial = !\$this->_relatedAlreadyInSaveWithRelated;
 
+        if (\$initial && \$try === 0) {
+            \$affectedRows = 0;
+        }
+
+        if (\$this->alreadyInSaveWithRelated || \$this->isDirtyWithRelated === false) {
+            if (\$initial) {
+                \$try = 0;
+            }
+            return \$affectedRows;
+        }
+
         if (\$initial) {
             if (!\$this->isDirtyWithRelated()) { // also fills \$this->_related array
-                \$this->alreadyInSaveWithRelated = false;
-                return 0;
+                assert(in_array(\$this, \$this->_related, true));
+                \$try = 0;
+                return \$affectedRows;
+            }
+            assert(in_array(\$this, \$this->_related, true));
+            \$try++;
+            if (\$try > \$maxTries) {
+                // give up
+                \$try = 0;
+                throw new PropelException(\"Could not save all objects in {\$maxTries} tries.\");
             }
             foreach (\$this->_related as \$obj) {
                 \$obj->_relatedAlreadyInSaveWithRelated = true;
             }
         }
+        assert(in_array(\$this, \$this->_related, true));
+
+        \$this->alreadyInSaveWithRelated = true;
 
         if (\$con === null) {
             \$con = Propel::getConnection(" . $this->getPeerClassname() . "::DATABASE_NAME, Propel::CONNECTION_WRITE);
@@ -5770,7 +5804,7 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
                 \$doSave = false;
             } else {
                 \$doSave = \$this->preSave(\$con);";
-            $this->applyBehaviorModifier('preSave', $script, "			    ");
+                $this->applyBehaviorModifier('preSave', $script, "			    ");
             $script .= "
                 if (\$isInsert) {
                     \$doSave = \$doSave && \$this->preInsert(\$con);";
@@ -5782,7 +5816,7 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
             $script .= "
                 }
             }
-            \$affectedRows = \$this->doSaveWithRelated(\$con, \$doSave" . ($reloadOnUpdate || $reloadOnInsert ? ", \$skipReload" : "") . ");
+            \$affectedRows += \$this->doSaveWithRelated(\$con, \$doSave" . ($reloadOnUpdate || $reloadOnInsert ? ", \$skipReload" : "") . ");
             if (\$this->isDeleted()) {
                 \$con->commit();
             } else {
@@ -5825,7 +5859,7 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
             }
             $script .= "
             }
-            \$affectedRows = \$this->doSaveWithRelated(\$con, \$doSave" . ($reloadOnUpdate || $reloadOnInsert ? ", \$skipReload" : "") . ");
+            \$affectedRows += \$this->doSaveWithRelated(\$con, \$doSave" . ($reloadOnUpdate || $reloadOnInsert ? ", \$skipReload" : "") . ");
             if (\$this->isDeleted()) {
                 \$con->commit();
             else {";
@@ -5851,32 +5885,42 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
         } else {
             // readonly object - save only related objects
             $script .= "
-            \$affectedRows = \$this->doSaveWithRelated(\$con, false" . ($reloadOnUpdate || $reloadOnInsert ? ", \$skipReload" : "") . ");
+            \$affectedRows += \$this->doSaveWithRelated(\$con, false" . ($reloadOnUpdate || $reloadOnInsert ? ", \$skipReload" : "") . ");
             \$con->commit();";
         }
 
         $script .= "
 
-            if (\$initial) {
-                foreach (\$this->_related as \$obj) {
-                    \$obj->_relatedAlreadyInSaveWithRelated = false;
-                    \$obj->alreadyInSaveWithRelated = false;
-                }
-                \$this->resetRelated();
-            }
-
-            return \$affectedRows;
-
         } catch (Exception \$e) {
+            \$try = 0;
             \$con->rollBack();
             if (\$initial) {
                 foreach (\$this->_related as \$obj) {
                     \$obj->_relatedAlreadyInSaveWithRelated = false;
                     \$obj->alreadyInSaveWithRelated = false;
                 }
+                // FIXME: handle new related objects added during save
+                assert(in_array(\$this, \$this->_related, true));
             }
             throw \$e;
-        }";
+        }
+
+        if (\$initial) {
+            foreach (\$this->_related as \$obj) {
+                \$obj->_relatedAlreadyInSaveWithRelated = false;
+                \$obj->alreadyInSaveWithRelated = false;
+            }
+            // FIXME: handle new related objects added during save
+            assert(in_array(\$this, \$this->_related, true));
+            \$this->resetRelated();
+            if (\$this->isDirtyWithRelated()) {
+                \$this->saveWithRelated(); //fixme - add params
+            } else {
+                \$try = 0;
+            }
+        }
+
+        return \$affectedRows;";
     }
 
     /**
@@ -6635,7 +6679,7 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
      *
      * @param string &$script The script will be modified in this method.
      */
-    protected function addisDirtyWithRelated(&$script)
+    protected function addIsDirtyWithRelated(&$script)
     {
         $table = $this->getTable();
 
@@ -6649,15 +6693,23 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
      */
     public function isDirtyWithRelated(array &\$related = array())
     {
+        assert(!\$this->alreadyInSaveWithRelated);
+        assert(!\$this->_relatedAlreadyInSaveWithRelated);
+
         if (\$this->isDirtyWithRelated !== null) {
+            // already in isDirtyWithRelated which means that this
+            // object is already contained in \$this->_related
+            // and this is initial run (\$related is empty);
+
+            assert(in_array(\$this, \$this->_related, true));
+            assert(!\$related);
+
             return \$this->isDirtyWithRelated;
         }
 
 //        if (\$this->alreadyInSave || \$this->_deleted) {
 //            return false;
 //        }
-
-        \$this->isDirtyWithRelated = false; // FIXME is this needed?
 
         \$initial = !\$related;
         \$related[] = \$this;
@@ -6769,6 +6821,7 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
 
         if (\$initial) {
             foreach (\$related as \$r) {
+                assert(!\$r->_related);
                 \$r->_related =& \$related;
                 assert(\$this->isDirtyWithRelated || !\$r->isDirtyWithRelated);
                 \$r->isDirtyWithRelated = \$this->isDirtyWithRelated;
@@ -6828,11 +6881,15 @@ abstract class " . $this->getClassname() . " extends " . $parentClass . " ";
      */
     protected function resetRelated()
     {
-        assert(!\$this->alreadyInSaveWithRelated);
+        if(\$this->alreadyInSaveWithRelated) {
+            throw new PropelException('Cannot call resetRelated() from saveWithRelated()');
+        }
 
         \$related = &\$this->_related;
 
         foreach (\$related as \$obj) {
+            assert(!\$obj->alreadyInSaveWithRelated);
+            assert(!\$obj->_relatedAlreadyInSaveWithRelated);
             unset(\$obj->_related);
             \$obj->_related = array();
             \$obj->isDirtyWithRelated = null;
