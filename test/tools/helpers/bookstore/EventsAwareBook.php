@@ -13,7 +13,8 @@ class EventsAwareBook extends BaseEventsAwareBook
     public function addBookOfficialSummaryEvent(BookOfficialSummaryEvent $e)
     {
         // determine whether the event is already attached to this book
-        $isNew  = !$this->getBookOfficialSummaryEvents()->contains($e, true);
+        $isNew  = !$this->collBookOfficialSummaryEvents
+            || !in_array($e, $this->collBookOfficialSummaryEvents->getArrayCopy(), true);
 
         parent::addBookOfficialSummaryEvent($e);
 
