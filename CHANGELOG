@@ -1,8 +1,46 @@
 # Changelog Of The Propel 1.x Branch #
 
-## ????-??-??: Version 1.7.2 ##
+## 2016-06-15: Version 1.8.0-egston/3.0.1 ##
 
-n/a
+7e9a4de Improve PropelObjectCollection::contains() and search()
+2c7d2d1 Enumerate dirty objects in exception thrown on failure from saveWithRelated()
+eb7cd5c Make doSaveWithRelated() to try harder to save everything
+9d375fa Fix saveWithRelated() for read-only tables
+b721d36 Add early implementation of saveWithRelated()
+31f7580 [test] Explicitly set error reporting to E_ALL | E_STRICT
+
+## 2016-06-15: Version 1.8.0-egston/2.0.1 ##
+
+e755c65 [tests] Rollback failed transaction(s) in BookstoreTestBase::tearDown()
+37739a6 [tests] reset_tests.sh: Replace realpath with more widespread readlink
+60cf8ff [composer] Fix for newer composer allowing by default access only to HTTPS URLs
+3c6ac30 [travis] Update .travis.yml to reflect user and database names changes
+aa6b8ae Fix Criteria::addMultipleJoin() with aliased table in left condition
+2b0f321 Validate only objects modified since last validation or save
+acf0cd4 Fix and improve script test/reset_tests.sh
+93ca03e [tests] Reintroduce and update test/README.md
+12d7d8c [tests] Change schema names used by schemas fixture model
+4233e5d [tests] Change the MySQL user and databases used by PHPUnit tests
+3f7a284 Merge pull request #864 from Gamesh/patch-3
+c021369 Ternary operator supported only in php5.3+
+e914de6 Merge pull request #854 from stevleibelt/master
+475e666 Fixed bug introduced by fix [0] and discussed [1].
+10180f9 Merge pull request #851 from exptom/1.7.1-fix
+06aa3ec Applying fix for migrate connection error
+25620fc Merge pull request #847 from acim/843-single-inheritance-keys-bugfix-squashed
+6ae2d02 Issue #843: Fixed bug when single inheritance keys contain special characters
+7b4fd63 Merge pull request #846 from exptom/patch-1
+aab4674 Honour value of 'disable_updated_at' paramter
+10fe1be Merge pull request #839 from javer/patch-diff-samecolumns
+3f5e010 Merge pull request #821 from stood/mysqldesc_for_reverse_task
+62afa32 Add function for test utf8 and add a description with accent in test
+b313c3d Fixed diff generator when several identical tables were renamed
+f62d334 Fixed diff generator when several identical columns were renamed
+4566669 Bump version to 1.7.2-dev
+ac145cf canceling changes because do not concern this branch
+2b5706d Reverse generate a comment for column
+75b2f6b Delete temporary variable. Add test for return Boolean Value. Changed queries for pgsql support
+95fd3f5 If the query return a boolean 'false' then the function 'format' no return this value
 
 ## 2014-02-25: Version 1.7.1 ##
 
