@@ -126,8 +126,8 @@ require '" . $requiredClassFilePath . "';
  *
  * @package    propel.generator." . $this->getPackage() . "
  */
-class " . $this->getClassname() . " extends " . $baseClassname . " {
-";
+class " . $this->getClassname() . " extends " . $baseClassname . "
+{";
     }
 
     /**

@@ -84,8 +84,8 @@ require '" . $this->getObjectBuilder()->getClassFilePath() . "';
  * @deprecated  Since Propel 1.5. Use the nested_set behavior instead of the NestedSet treeMode
  * @package    propel.generator." . $this->getPackage() . "
  */
-abstract class " . $this->getClassname() . " extends " . $this->getObjectBuilder()->getClassname() . " implements NodeObject {
-";
+abstract class " . $this->getClassname() . " extends " . $this->getObjectBuilder()->getClassname() . " implements NodeObject
+{";
     }
 
     /**

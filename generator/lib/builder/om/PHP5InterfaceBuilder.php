@@ -79,8 +79,8 @@ class PHP5InterfaceBuilder extends ObjectBuilder
  *
  * @package    propel.generator." . $this->getPackage() . "
  */
-interface " . $this->getClassname() . " {
-";
+interface " . $this->getClassname() . "
+{";
     }
 
     /**

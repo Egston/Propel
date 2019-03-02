@@ -162,8 +162,8 @@ class PHP5MultiExtendObjectBuilder extends ObjectBuilder
  *
  * @package    propel.generator." . $this->getPackage() . "
  */
-class " . $this->getClassname() . " extends " . $this->getParentClassname() . " {
-";
+class " . $this->getClassname() . " extends " . $this->getParentClassname() . "
+{";
     }
 
     /**

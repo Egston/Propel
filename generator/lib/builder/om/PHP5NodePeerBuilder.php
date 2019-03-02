@@ -80,8 +80,8 @@ class PHP5NodePeerBuilder extends PeerBuilder
         $script .= "
  * @package    propel.generator." . $this->getPackage() . "
  */
-abstract class " . $this->getClassname() . " {
-";
+abstract class " . $this->getClassname() . "
+{";
     }
 
     /**

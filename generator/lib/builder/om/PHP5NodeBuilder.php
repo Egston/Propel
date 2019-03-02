@@ -80,8 +80,8 @@ class PHP5NodeBuilder extends ObjectBuilder
         $script .= "
  * @package    propel.generator." . $this->getPackage() . "
  */
-abstract class " . $this->getClassname() . " implements IteratorAggregate {
-";
+abstract class " . $this->getClassname() . " implements IteratorAggregate
+{";
     }
 
     /**

@@ -84,8 +84,8 @@ require '" . $this->getPeerBuilder()->getClassFilePath() . "';
  * @deprecated  Since Propel 1.5. Use the nested_set behavior instead of the NestedSet treeMode
  * @package    propel.generator." . $this->getPackage() . "
  */
-abstract class " . $this->getClassname() . " extends " . $this->getPeerBuilder()->getClassName() . " implements NodePeer {
-";
+abstract class " . $this->getClassname() . " extends " . $this->getPeerBuilder()->getClassName() . " implements NodePeer
+{";
     }
 
     /**
