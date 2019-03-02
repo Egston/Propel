@@ -1,5 +1,13 @@
 # Changelog Of The Propel 1.x Branch #
 
+## 2019-03-02: Version 1.8.0-egston/3.0.2 ##
+
+7cc5a551 fix(om builder): remove blank line at end of classes generated for tables using inheritance
+35034540 fix(om builder): put opening brace of generated OM classes bodies to new line
+cdc48c1a fix(om builder): prevent inserting empty lines before generated OM classes
+568839ec fix(om builder): prevent inserting empty lines to PhpDoc block inside generated classes if related db tables have no description
+c22204b8 style(om builder): fix PHP code indentation
+
 ## 2016-06-15: Version 1.8.0-egston/3.0.1 ##
 
 7e9a4de Improve PropelObjectCollection::contains() and search()
