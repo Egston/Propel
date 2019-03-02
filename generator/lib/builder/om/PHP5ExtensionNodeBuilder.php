@@ -62,9 +62,12 @@ require '" . $this->getNodeBuilder()->getClassFilePath() . "';
 
 /**
  * Skeleton subclass for representing a node from the '$tableName' table.
- *
+ *";
+        if ($tableDesc) {
+            $script .= "
  * $tableDesc
  *";
+        }
         if ($this->getBuildProperty('addTimeStamp')) {
             $now = strftime('%c');
             $script .= "

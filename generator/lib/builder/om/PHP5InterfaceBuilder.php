@@ -58,9 +58,12 @@ class PHP5InterfaceBuilder extends ObjectBuilder
         $script .= "
 /**
  * This is an interface that should be filled with the public api of the $tableName objects.
- *
+ *";
+        if ($tableDesc) {
+            $script .= "
  * $tableDesc
  *";
+        }
         if ($this->getBuildProperty('addTimeStamp')) {
             $now = strftime('%c');
             $script .= "

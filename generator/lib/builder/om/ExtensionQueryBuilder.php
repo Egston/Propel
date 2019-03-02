@@ -64,9 +64,12 @@ require '" . $requiredClassFilePath . "';
 
 /**
  * Skeleton subclass for performing query and update operations on the '$tableName' table.
- *
+ *";
+        if ($tableDesc) {
+            $script .= "
  * $tableDesc
  *";
+        }
         if ($this->getBuildProperty('addTimeStamp')) {
             $now = strftime('%c');
             $script .= "

@@ -62,9 +62,12 @@ require '" . $this->getNodePeerBuilder()->getClassFilePath() . "';
 
 /**
  * Skeleton subclass for performing query and update operations on nodes of the '$tableName' table.
- *
+ *";
+        if ($tableDesc) {
+            $script .= "
  * $tableDesc
  *";
+        }
         if ($this->getBuildProperty('addTimeStamp')) {
             $now = strftime('%c');
             $script .= "
