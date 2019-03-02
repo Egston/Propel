@@ -54,13 +54,12 @@ abstract class OMBuilder extends DataModelBuilder
         $this->addClassBody($script);
         $this->addClassClose($script);
 
-        if ($useStatements = $this->getUseStatements($ignoredNamespace = $this->getNamespace())) {
-            $script = $useStatements . $script;
-        }
+        $statement_groups = array_filter(array(
+            $this->getNamespaceStatement(),
+            $this->getUseStatements($ignoredNamespace = $this->getNamespace()),
+        ));
 
-        if ($namespaceStatement = $this->getNamespaceStatement()) {
-            $script = $namespaceStatement . $script;
-        }
+        $script = implode("\n", $statement_groups) . $script;
 
         $script = "<?php
 
@@ -245,7 +244,6 @@ abstract class OMBuilder extends DataModelBuilder
         $namespace = $this->getNamespace();
         if ($namespace != '') {
             return sprintf("namespace %s;
-
 ", $namespace);
         }
     }

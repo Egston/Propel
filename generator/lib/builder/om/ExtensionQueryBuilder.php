@@ -61,7 +61,6 @@ require '" . $requiredClassFilePath . "';
 
         if ($this->getBuildProperty('addClassLevelComment')) {
             $script .= "
-
 /**
  * Skeleton subclass for performing query and update operations on the '$tableName' table.
  *";

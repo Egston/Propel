@@ -59,7 +59,6 @@ require '" . $this->getNodeBuilder()->getClassFilePath() . "';
         $baseClassname = $this->getNodeBuilder()->getClassname();
 
         $script .= "
-
 /**
  * Skeleton subclass for representing a node from the '$tableName' table.
  *";

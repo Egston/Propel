@@ -82,7 +82,6 @@ require '" . $requiredClassFilePath . "';
 
         if ($this->getBuildProperty('addClassLevelComment')) {
             $script .= "
-
 /**
  * Skeleton subclass for representing a row from the '$tableName' table.
  *";

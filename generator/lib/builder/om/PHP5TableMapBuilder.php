@@ -68,7 +68,6 @@ class PHP5TableMapBuilder extends OMBuilder
     {
         $table = $this->getTable();
         $script .= "
-
 /**
  * This class defines the structure of the '" . $table->getName() . "' table.
  *

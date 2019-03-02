@@ -139,7 +139,6 @@ class PHP5MultiExtendObjectBuilder extends ObjectBuilder
         $baseClassname = $this->getObjectBuilder()->getClassname();
 
         $script .= "
-
 /**
  * Skeleton subclass for representing a row from one of the subclasses of the '$tableName' table.
  *";
