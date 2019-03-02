@@ -203,8 +203,10 @@ class " . $this->getClassname() . " extends " . $this->getParentClassname() . "
      */
     protected function addClassClose(&$script)
     {
-        $script .= "
-} // " . $this->getClassname() . "
+        if (substr($script, -1) !== "\n") {
+            $script .= "\n";
+        }
+        $script .= "} // " . $this->getClassname() . "
 ";
     }
 } // PHP5ExtensionObjectBuilder
